@@ -1,0 +1,112 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please fill out the form below.
+
+        Check the [roadmap](https://github.com/jarkillo/ci-guardian#roadmap) to see if it's already planned.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature related to a problem?
+      description: A clear description of the problem you're trying to solve
+      placeholder: I'm frustrated when... It would be better if...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the Solution
+      description: A clear description of what you want to happen
+      placeholder: I would like CI Guardian to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions you've considered
+      placeholder: I've thought about... but it doesn't work because...
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Which module would this affect?
+      description: Select the module(s) this feature would belong to
+      multiple: true
+      options:
+        - Hook Installer (LIB-1)
+        - Virtual Environment Manager (LIB-2)
+        - Code Quality (LIB-4) - Ruff & Black
+        - Security Audit (LIB-5) - Bandit & Safety
+        - Authorship Validator (LIB-6)
+        - No-Verify Blocker (LIB-3)
+        - CLI Interface (LIB-8)
+        - GitHub Actions Runner (LIB-7)
+        - Core Infrastructure
+        - Documentation
+        - Testing
+        - Other
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (Your Opinion)
+      description: How important is this feature to you?
+      options:
+        - "Critical - Blocks my usage"
+        - "High - Would significantly improve my workflow"
+        - "Medium - Nice to have"
+        - "Low - Just an idea"
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Usage Examples
+      description: Show how this feature would be used
+      placeholder: |
+        ```python
+        # Example of how I'd use this feature
+        ci-guardian install --with-feature
+        ```
+      render: python
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Why is this Important?
+      description: Explain why this feature would benefit the project
+      placeholder: This feature would help because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or mockups
+      placeholder: Here's a mockup of how it could look...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have checked the roadmap to see if this is already planned
+          required: true
+        - label: This feature aligns with the project's goals
+          required: true
+        - label: I would be willing to help implement this feature
+          required: false
