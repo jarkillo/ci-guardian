@@ -103,9 +103,7 @@ class TestValidacionNombreHook:
 
         # Act & Assert
         for hook_name in hooks_invalidos:
-            with pytest.raises(
-                ValueError, match=f"Hook no permitido: {hook_name}"
-            ):
+            with pytest.raises(ValueError, match=f"Hook no permitido: {hook_name}"):
                 validar_nombre_hook(hook_name)
 
     def test_debe_rechazar_hook_vacio(self) -> None:
@@ -173,12 +171,8 @@ class TestValidacionPathTraversal:
 class TestInstalacionHooksLinux:
     """Tests para la instalación de hooks en sistemas Linux."""
 
-    @pytest.mark.skipif(
-        platform.system() == "Windows", reason="Test específico de Linux/Unix"
-    )
-    def test_debe_instalar_hook_con_permisos_755_en_linux_real(
-        self, tmp_path: Path
-    ) -> None:
+    @pytest.mark.skipif(platform.system() == "Windows", reason="Test específico de Linux/Unix")
+    def test_debe_instalar_hook_con_permisos_755_en_linux_real(self, tmp_path: Path) -> None:
         """Debe instalar hook con permisos 755 (rwxr-xr-x) en Linux real."""
         # Arrange
         repo_path = tmp_path / "repo"
@@ -231,17 +225,13 @@ class TestInstalacionHooksLinux:
         hook_path = repo_path / ".git" / "hooks" / "pre-push"
         contenido = hook_path.read_text(encoding="utf-8")
 
-        assert contenido.startswith(
-            "#!/usr/bin/env python3"
-        ), "El hook debe tener shebang correcto"
+        assert contenido.startswith("#!/usr/bin/env python3"), "El hook debe tener shebang correcto"
 
 
 class TestInstalacionHooksWindows:
     """Tests para la instalación de hooks en sistemas Windows."""
 
-    @pytest.mark.skipif(
-        platform.system() != "Windows", reason="Test específico de Windows"
-    )
+    @pytest.mark.skipif(platform.system() != "Windows", reason="Test específico de Windows")
     def test_debe_instalar_hook_bat_en_windows_real(self, tmp_path: Path) -> None:
         """Debe instalar hooks como archivos .bat en Windows real."""
         # Arrange
@@ -313,9 +303,7 @@ class TestPrevencionSobrescrituraHooks:
             with patch("platform.system", return_value="Linux"):
                 instalar_hook(repo_path, "pre-commit", contenido_nuevo)
 
-    def test_debe_rechazar_instalacion_si_hook_bat_existe_en_windows(
-        self, tmp_path: Path
-    ) -> None:
+    def test_debe_rechazar_instalacion_si_hook_bat_existe_en_windows(self, tmp_path: Path) -> None:
         """Debe rechazar instalar si el hook .bat ya existe en Windows."""
         # Arrange
         repo_path = tmp_path / "repo"
@@ -352,9 +340,7 @@ class TestPrevencionSobrescrituraHooks:
 
         # Assert
         contenido_actual = hook_path.read_text(encoding="utf-8")
-        assert (
-            contenido_actual == contenido_original
-        ), "El hook original debe permanecer intacto"
+        assert contenido_actual == contenido_original, "El hook original debe permanecer intacto"
 
 
 class TestManejoErrores:
@@ -374,9 +360,7 @@ class TestManejoErrores:
         ):
             instalar_hook(dir_path, "pre-commit", contenido_hook)
 
-    def test_debe_lanzar_valueerror_si_nombre_hook_invalido(
-        self, tmp_path: Path
-    ) -> None:
+    def test_debe_lanzar_valueerror_si_nombre_hook_invalido(self, tmp_path: Path) -> None:
         """Debe lanzar ValueError si el nombre del hook no está en la whitelist."""
         # Arrange
         repo_path = tmp_path / "repo"
@@ -388,9 +372,7 @@ class TestManejoErrores:
         with pytest.raises(ValueError, match="Hook no permitido: malicious-hook"):
             instalar_hook(repo_path, "malicious-hook", contenido_hook)
 
-    def test_debe_lanzar_valueerror_si_directorio_hooks_no_existe(
-        self, tmp_path: Path
-    ) -> None:
+    def test_debe_lanzar_valueerror_si_directorio_hooks_no_existe(self, tmp_path: Path) -> None:
         """Debe lanzar ValueError si el directorio .git/hooks/ no existe."""
         # Arrange
         repo_path = tmp_path / "repo"
@@ -447,7 +429,11 @@ class TestCompatibilidadMultiplataforma:
         repo_path = tmp_path / "repo"
         repo_path.mkdir()
         (repo_path / ".git" / "hooks").mkdir(parents=True)
-        contenido_hook = "echo 'test'"
+        # Usar contenido válido según la plataforma
+        if sistema == "Windows":
+            contenido_hook = "@echo off\necho test"
+        else:
+            contenido_hook = "#!/bin/bash\necho test"
 
         # Act
         with patch("platform.system", return_value=sistema):
@@ -455,7 +441,9 @@ class TestCompatibilidadMultiplataforma:
 
         # Assert
         hook_path = repo_path / ".git" / "hooks" / f"pre-commit{extension_esperada}"
-        assert hook_path.exists(), f"El hook debe tener extensión '{extension_esperada}' en {sistema}"
+        assert (
+            hook_path.exists()
+        ), f"El hook debe tener extensión '{extension_esperada}' en {sistema}"
 
     def test_debe_manejar_rutas_con_espacios(self, tmp_path: Path) -> None:
         """Debe manejar correctamente rutas con espacios en el nombre."""
@@ -473,9 +461,7 @@ class TestCompatibilidadMultiplataforma:
         hook_path = repo_path / ".git" / "hooks" / "pre-commit"
         assert hook_path.exists(), "Debe manejar rutas con espacios correctamente"
 
-    def test_debe_manejar_caracteres_unicode_en_contenido(
-        self, tmp_path: Path
-    ) -> None:
+    def test_debe_manejar_caracteres_unicode_en_contenido(self, tmp_path: Path) -> None:
         """Debe manejar correctamente caracteres Unicode en el contenido del hook."""
         # Arrange
         repo_path = tmp_path / "repo"
@@ -490,9 +476,7 @@ class TestCompatibilidadMultiplataforma:
         # Assert
         hook_path = repo_path / ".git" / "hooks" / "pre-push"
         contenido_leido = hook_path.read_text(encoding="utf-8")
-        assert (
-            contenido_leido == contenido_hook
-        ), "Debe preservar caracteres Unicode correctamente"
+        assert contenido_leido == contenido_hook, "Debe preservar caracteres Unicode correctamente"
 
 
 class TestContenidoHooks:
@@ -523,9 +507,7 @@ if __name__ == "__main__":
         # Assert
         hook_path = repo_path / ".git" / "hooks" / "pre-commit"
         contenido_leido = hook_path.read_text(encoding="utf-8")
-        assert (
-            contenido_leido == contenido_hook
-        ), "El contenido debe ser idéntico al original"
+        assert contenido_leido == contenido_hook, "El contenido debe ser idéntico al original"
 
     def test_debe_manejar_saltos_de_linea_unix(self, tmp_path: Path) -> None:
         """Debe manejar correctamente saltos de línea Unix (LF)."""
@@ -543,6 +525,306 @@ if __name__ == "__main__":
         hook_path = repo_path / ".git" / "hooks" / "pre-commit"
         contenido_leido = hook_path.read_text(encoding="utf-8")
         assert "\n" in contenido_leido, "Debe preservar saltos de línea Unix (LF)"
-        assert (
-            "\r\n" not in contenido_leido
-        ), "No debe convertir a saltos de línea Windows (CRLF)"
+        assert "\r\n" not in contenido_leido, "No debe convertir a saltos de línea Windows (CRLF)"
+
+
+class TestMejorasSeguridad:
+    """Tests para mejoras opcionales de seguridad sugeridas por el auditor.
+
+    Estas mejoras están clasificadas como:
+    - Validación de shebang: Prioridad BAJA
+    - Logging de operaciones: Prioridad BAJA
+    - Límite de tamaño: Prioridad MUY BAJA
+    """
+
+    # ========== Tests para Validación de Shebang ==========
+
+    @pytest.mark.parametrize(
+        "shebang_valido",
+        [
+            "#!/bin/bash",
+            "#!/bin/sh",
+            "#!/usr/bin/env python",
+            "#!/usr/bin/env python3",
+        ],
+    )
+    def test_debe_permitir_shebangs_validos(self, tmp_path: Path, shebang_valido: str) -> None:
+        """Debe permitir shebangs en la lista de shebangs permitidos."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+        contenido_hook = f"{shebang_valido}\necho 'test'"
+
+        # Act
+        with patch("platform.system", return_value="Linux"):
+            instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+        # Assert
+        hook_path = repo_path / ".git" / "hooks" / "pre-commit"
+        assert hook_path.exists(), "El hook con shebang válido debe instalarse correctamente"
+        contenido_leido = hook_path.read_text(encoding="utf-8")
+        assert contenido_leido.startswith(
+            shebang_valido
+        ), f"El hook debe comenzar con el shebang: {shebang_valido}"
+
+    def test_debe_rechazar_hook_sin_shebang(self, tmp_path: Path) -> None:
+        """Debe rechazar hooks que no comienzan con un shebang."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+        contenido_hook = "echo 'test sin shebang'\nexit 0"
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="El hook debe comenzar con un shebang"):
+            with patch("platform.system", return_value="Linux"):
+                instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+    @pytest.mark.parametrize(
+        "shebang_no_permitido",
+        [
+            "#!/usr/bin/perl",
+            "#!/usr/bin/ruby",
+            "#!/usr/bin/env node",
+            "#!/usr/bin/php",
+        ],
+    )
+    def test_debe_rechazar_shebang_no_permitido(
+        self, tmp_path: Path, shebang_no_permitido: str
+    ) -> None:
+        """Debe rechazar shebangs que no están en la whitelist."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+        contenido_hook = f"{shebang_no_permitido}\nprint 'test'"
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="Shebang no permitido"):
+            with patch("platform.system", return_value="Linux"):
+                instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+    def test_debe_validar_shebang_en_primera_linea(self, tmp_path: Path) -> None:
+        """Debe validar que el shebang esté en la primera línea (ignorar comentarios posteriores)."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+        contenido_hook = """#!/bin/bash
+# Este es un comentario con #!/usr/bin/perl (no debe validarse)
+echo 'test'
+"""
+
+        # Act
+        with patch("platform.system", return_value="Linux"):
+            instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+        # Assert
+        hook_path = repo_path / ".git" / "hooks" / "pre-commit"
+        assert hook_path.exists(), "El hook debe instalarse si el shebang está en la primera línea"
+
+    def test_debe_rechazar_hook_con_espacios_antes_shebang(self, tmp_path: Path) -> None:
+        """Debe rechazar hooks con espacios o líneas vacías antes del shebang."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+        contenido_hook = "\n  #!/bin/bash\necho 'test'"
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="El hook debe comenzar con un shebang"):
+            with patch("platform.system", return_value="Linux"):
+                instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+    # ========== Tests para Logging de Operaciones de Seguridad ==========
+
+    def test_debe_loggear_intento_path_traversal(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Debe loggear warning cuando se detecta un intento de path traversal."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+        contenido_hook = "#!/bin/bash\necho 'malicious'"
+
+        # Intentar path traversal mediante nombre de hook manipulado
+        hook_malicioso = "../../../etc/passwd"
+
+        # Act
+        with caplog.at_level("WARNING"):
+            try:
+                instalar_hook(repo_path, hook_malicioso, contenido_hook)
+            except ValueError:
+                pass  # Se espera que falle
+
+        # Assert
+        assert any(
+            "path traversal" in record.message.lower() for record in caplog.records
+        ), "Debe loggear un warning sobre path traversal detectado"
+
+        # Verificar que el log incluye información relevante
+        log_messages = [record.message for record in caplog.records]
+        assert any(
+            str(repo_path) in msg for msg in log_messages
+        ), "El log debe incluir el repo_path"
+
+    def test_debe_usar_nivel_warning_para_path_traversal(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Debe usar nivel WARNING para logs de path traversal."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+        hook_path = repo_path / ".git" / "hooks" / ".." / ".." / "malicious"
+
+        # Act
+        with caplog.at_level("WARNING"):
+            try:
+                # Llamar directamente a validar_path_hook con path malicioso
+                from ci_guardian.core.installer import validar_path_hook
+
+                validar_path_hook(repo_path, hook_path.resolve())
+            except ValueError:
+                pass
+
+        # Assert
+        warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warning_records) > 0, "Debe existir al menos un log de nivel WARNING"
+
+    def test_no_debe_loggear_para_paths_validos(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """No debe loggear warnings para paths de hooks válidos."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+        contenido_hook = "#!/bin/bash\necho 'valid hook'"
+
+        # Act
+        with caplog.at_level("WARNING"):
+            with patch("platform.system", return_value="Linux"):
+                instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+        # Assert
+        warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warning_records) == 0, "No debe loggear warnings para operaciones válidas"
+
+    # ========== Tests para Límite de Tamaño de Contenido ==========
+
+    def test_debe_permitir_hook_tamano_normal(self, tmp_path: Path) -> None:
+        """Debe permitir instalar hooks de tamaño normal (< 100KB)."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+
+        # Hook de ~10KB (normal)
+        contenido_hook = "#!/bin/bash\n" + "echo 'test'\n" * 500
+
+        # Act
+        with patch("platform.system", return_value="Linux"):
+            instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+        # Assert
+        hook_path = repo_path / ".git" / "hooks" / "pre-commit"
+        assert hook_path.exists(), "Debe instalar hooks de tamaño normal sin problemas"
+
+    def test_debe_rechazar_hook_mayor_100kb(self, tmp_path: Path) -> None:
+        """Debe rechazar hooks mayores a 100KB."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+
+        # Hook de ~150KB (excede el límite)
+        # Cada línea ~20 bytes, 7500 líneas ≈ 150KB
+        contenido_hook = "#!/bin/bash\n" + "echo 'test line'\n" * 7500
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="El hook es demasiado grande"):
+            with patch("platform.system", return_value="Linux"):
+                instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+    def test_debe_calcular_tamano_en_bytes_utf8(self, tmp_path: Path) -> None:
+        """Debe calcular el tamaño en bytes UTF-8, no en caracteres."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+
+        # Caracteres multibyte: cada emoji ≈ 4 bytes UTF-8
+        # 30,000 emojis × 4 bytes = ~120KB (excede 100KB)
+        contenido_hook = "#!/bin/bash\n" + "# 😀" * 30000
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="El hook es demasiado grande"):
+            with patch("platform.system", return_value="Linux"):
+                instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+    def test_debe_manejar_correctamente_contenido_multibyte(self, tmp_path: Path) -> None:
+        """Debe manejar correctamente contenido con caracteres multibyte (Unicode)."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+
+        # Contenido pequeño con Unicode variado (< 100KB)
+        contenido_hook = """#!/bin/bash
+# Comentarios con Unicode: 日本語, العربية, 中文, Español
+echo '✅ Test con emojis: 🚀 🎉 ✨'
+echo 'Acentos: café, señor, información'
+"""
+
+        # Act
+        with patch("platform.system", return_value="Linux"):
+            instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+        # Assert
+        hook_path = repo_path / ".git" / "hooks" / "pre-commit"
+        assert hook_path.exists(), "Debe instalar hooks con caracteres multibyte"
+        contenido_leido = hook_path.read_text(encoding="utf-8")
+        assert contenido_leido == contenido_hook, "Debe preservar exactamente el contenido Unicode"
+
+    def test_limite_tamano_exactamente_100kb(self, tmp_path: Path) -> None:
+        """Debe permitir hooks de exactamente 100KB (límite exacto)."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+
+        # Crear contenido de exactamente 100KB
+        shebang = "#!/bin/bash\n"
+        # 100KB - len(shebang) bytes
+        bytes_restantes = (1024 * 100) - len(shebang.encode("utf-8"))
+        contenido_hook = shebang + ("a" * bytes_restantes)
+
+        # Act
+        with patch("platform.system", return_value="Linux"):
+            instalar_hook(repo_path, "pre-commit", contenido_hook)
+
+        # Assert
+        hook_path = repo_path / ".git" / "hooks" / "pre-commit"
+        assert hook_path.exists(), "Debe permitir hooks de exactamente 100KB"
+        tamano_bytes = len(hook_path.read_text(encoding="utf-8").encode("utf-8"))
+        assert tamano_bytes == 1024 * 100, "El tamaño debe ser exactamente 100KB"
+
+    def test_debe_rechazar_hook_un_byte_mayor_100kb(self, tmp_path: Path) -> None:
+        """Debe rechazar hooks de 100KB + 1 byte."""
+        # Arrange
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        (repo_path / ".git" / "hooks").mkdir(parents=True)
+
+        # Crear contenido de 100KB + 1 byte
+        shebang = "#!/bin/bash\n"
+        bytes_restantes = (1024 * 100) - len(shebang.encode("utf-8")) + 1  # +1 byte
+        contenido_hook = shebang + ("a" * bytes_restantes)
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="El hook es demasiado grande"):
+            with patch("platform.system", return_value="Linux"):
+                instalar_hook(repo_path, "pre-commit", contenido_hook)
