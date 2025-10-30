@@ -1,9 +1,19 @@
+# ============================================
+# CI Guardian - .gitignore
+# ============================================
+# Comprehensive ignore file for Python projects
+# with CI/CD, testing, and security tools
+
+# ============================================
 # Python
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# Distribution / packaging
 build/
 develop-eggs/
 dist/
@@ -22,8 +32,15 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.whl
 
-# Virtual environments
+# PyInstaller
+*.manifest
+*.spec
+
+# ============================================
+# Virtual Environments
+# ============================================
 venv/
 .venv/
 env/
@@ -31,8 +48,12 @@ env/
 ENV/
 env.bak/
 venv.bak/
+pythonenv/
+.python-version
 
-# Testing
+# ============================================
+# Testing & Coverage
+# ============================================
 .tox/
 .nox/
 .coverage
@@ -44,38 +65,191 @@ coverage.xml
 *.log
 .pytest_cache/
 htmlcov/
+.hypothesis/
+.benchmarks/
 
-# Type checking
+# ============================================
+# Type Checking & Linting
+# ============================================
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pyre/
 .pytype/
+.ruff_cache/
 
-# IDEs
+# ============================================
+# Code Quality Tools (CI Guardian specific)
+# ============================================
+# Ruff
+.ruff_cache/
+
+# Black
+.black/
+
+# Bandit
+.bandit
+bandit-report.txt
+bandit-report.json
+
+# Safety
+safety-report.txt
+safety-report.json
+
+# Pre-commit
+.pre-commit-cache/
+
+# ============================================
+# IDEs & Editors
+# ============================================
+# VSCode
 .vscode/
+*.code-workspace
+
+# PyCharm / IntelliJ
 .idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
 *.swp
 *.swo
 *~
+.*.sw?
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================
+# OS Specific
+# ============================================
+# macOS
 .DS_Store
-
-# Project specific
-.ci-guardian-token
-.ci-guardian/
-
-# Distribution
-*.whl
-
-# OS specific
-*.Zone.Identifier
-Thumbs.db
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
 .Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
-# Security
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+*.Zone.Identifier
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# ============================================
+# Security & Secrets
+# ============================================
 *.pem
 *.key
 *.cert
+*.p12
+*.pfx
 secrets.yaml
+secrets.yml
+.env
 .env.local
 .env.*.local
+.env.production
+.env.development
+.env.test
+.secret
+*.secret
+.secrets/
+credentials.json
+
+# CI Guardian tokens
+.ci-guardian-token
+.ci-guardian-tokens/
+
+# ============================================
+# CI Guardian Project Specific
+# ============================================
+.ci-guardian/
+
+# Temporary hook backups
+*.hook.backup
+
+# ============================================
+# GitHub Actions (act - local runner)
+# ============================================
+.actrc
+.secrets
+
+# ============================================
+# Documentation
+# ============================================
+site/
+docs/_build/
+docs/.buildinfo
+*.rst~
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ============================================
+# Logs & Databases
+# ============================================
+*.log
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# ============================================
+# Package Manager Locks (optional - debate)
+# ============================================
+# Uncomment if you want to ignore lock files
+# poetry.lock
+# Pipfile.lock
+# pdm.lock
+
+# ============================================
+# Build artifacts
+# ============================================
+*.pyc
+*.pyo
+*.pyd
+.installed
+.installed.cfg
