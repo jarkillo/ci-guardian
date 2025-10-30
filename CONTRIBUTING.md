@@ -31,6 +31,16 @@ Hay muchas formas de contribuir a CI Guardian:
 
 CI Guardian sigue **TDD estricto** (Test-Driven Development). Este es el proceso obligatorio:
 
+### ⚠️ IMPORTANTE: Branch Protection Activo
+
+> **Las ramas `main` y `dev` están protegidas**. NO se puede hacer push directo - todos los cambios deben ir mediante Pull Request. Además, **pre-commit hooks** se ejecutan automáticamente en cada commit.
+
+**Implicaciones:**
+- ❌ NO puedes hacer `git push origin dev` o `git push origin main`
+- ✅ Debes crear una rama feature y abrir un Pull Request
+- ✅ Pre-commit hooks validan automáticamente cada commit (Ruff, Black, Bandit, MyPy)
+- ✅ Si los hooks fallan, el commit se bloquea hasta que corrijas los errores
+
 ### 1. Setup del Entorno
 
 ```bash
@@ -47,7 +57,20 @@ source venv/bin/activate  # En Windows: venv\Scripts\activate
 
 # Instala dependencias
 pip install -e ".[dev]"
+
+# Instala pre-commit hooks (OBLIGATORIO)
+pre-commit install
+# Verifica que funciona
+pre-commit run --all-files
 ```
+
+**Pre-commit hooks instalados:**
+- ✅ Hygiene: trailing whitespace, EOF, YAML/JSON/TOML syntax
+- ✅ Ruff: linter + formatter (auto-fix)
+- ✅ Black: code formatter
+- ✅ Bandit: security linter
+- ✅ MyPy: type checker
+- ✅ Custom: anti --no-verify detection
 
 ### 2. Crear una Rama Feature
 
@@ -370,15 +393,21 @@ Tu PR será revisado por:
 Una vez aprobado, un mantenedor hará merge a `dev`. Después:
 
 ```bash
-# Actualiza tu fork
+# Actualiza tu rama local
 git checkout dev
 git pull upstream dev
-git push origin dev
 
-# Limpia tu rama feature
+# Limpia tu rama feature local
 git branch -d feat/nombre-descriptivo
+
+# Elimina la rama feature remota
 git push origin --delete feat/nombre-descriptivo
 ```
+
+**Nota**: Ya NO necesitas hacer `git push origin dev` porque:
+- Las ramas `main` y `dev` están protegidas (branch protection activo)
+- NO se puede hacer push directo - solo mediante Pull Request
+- El merge ya está en `upstream/dev`, así que solo necesitas hacer `pull`
 
 ## 🐛 Reportar Bugs
 

@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Infrastructure & Workflow
+- 🔧 **Pre-commit hooks** - Framework de pre-commit instalado y configurado
+  - 15 hooks activos: trailing whitespace, EOF fixer, YAML/JSON/TOML checks
+  - Code quality: Ruff linter + formatter, Black formatter
+  - Security: Bandit security linter
+  - Type checking: MyPy static type checker
+  - Custom hooks: Anti --no-verify in commit messages
+  - Large files detection (max 1MB)
+  - Private keys detection, merge conflicts detection
+  - Se ejecutan automáticamente en cada commit
+
+- 🔒 **Branch Protection Rules** - Protección estricta de ramas principales
+  - `main` bloqueada: solo merge mediante Pull Request
+  - `dev` bloqueada: solo merge mediante Pull Request
+  - `enforce_admins: true` - Nadie puede hacer push directo (ni siquiera admins)
+  - Force push bloqueado en ambas ramas
+  - Eliminación de ramas bloqueada
+  - Verificado y funcionando correctamente
+
+- 📁 **Improved .gitignore** - Reorganización completa con 256 líneas
+  - 13 secciones claramente organizadas
+  - Cobertura completa de herramientas de CI Guardian
+  - Patterns específicos: `.ruff_cache/`, `.pre-commit-cache/`, bandit/safety reports
+  - CI Guardian specific: `.ci-guardian-token`, `*.hook.backup`
+  - GitHub Actions (act): `.actrc`, `.secrets`
+  - Expandido OS support: macOS, Windows, Linux patterns completos
+  - IDEs adicionales: Sublime Text, Emacs
+  - Security patterns: .env variants, credentials, certificates
+
+### Changed
+- **Development Workflow** - Ahora es obligatorio usar Pull Requests
+  - No se puede hacer push directo a `main` o `dev`
+  - Todos los commits pasan por pre-commit hooks automáticamente
+  - Workflow: feature branch → push → PR → merge
+
 ### Planned
 - LIB-2: Virtual Environment Manager - Detección/gestión de entornos virtuales
 - LIB-4: Ruff & Black Integration - Ejecución automática de linters

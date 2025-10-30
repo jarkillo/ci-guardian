@@ -234,19 +234,54 @@ Ver el [proyecto completo en GitHub](https://github.com/jarkillo/ci-guardian) pa
 
 ## 🤝 Contribuir
 
-¡Las contribuciones son bienvenidas! El proyecto sigue TDD estricto:
+¡Las contribuciones son bienvenidas! El proyecto sigue TDD estricto y un workflow basado en Pull Requests.
+
+### ⚠️ Branch Protection Activo
+
+> **IMPORTANTE**: Las ramas `main` y `dev` están protegidas. **NO se puede hacer push directo** - todos los cambios deben ir mediante Pull Request.
+
+### 📝 Workflow de Contribución
 
 1. **Fork** el proyecto
-2. **Crea una rama** feature desde `dev` (`git checkout -b feat/amazing-feature`)
-3. **Escribe tests PRIMERO** (RED) - Todos los tests deben fallar
-4. **Implementa** el código mínimo (GREEN) - Haz que los tests pasen
-5. **Refactoriza** si es necesario (REFACTOR)
-6. **Asegúrate** de que todo pasa:
-   - `pytest` (tests)
-   - `ruff check .` (linting)
-   - `black --check .` (formatting)
-7. **Commit** con [Conventional Commits](https://www.conventionalcommits.org/): `feat(scope): description`
-8. **Push** y crea un Pull Request a `dev`
+2. **Clone** tu fork localmente
+3. **Configura pre-commit** (se ejecuta automáticamente en cada commit):
+   ```bash
+   source venv/bin/activate
+   pre-commit install  # Ya está instalado en este repo
+   ```
+4. **Crea una rama** feature desde `dev`:
+   ```bash
+   git checkout -b feat/amazing-feature
+   ```
+5. **Escribe tests PRIMERO** (RED) - Todos los tests deben fallar
+6. **Implementa** el código mínimo (GREEN) - Haz que los tests pasen
+7. **Refactoriza** si es necesario (REFACTOR)
+8. **Commit** con [Conventional Commits](https://www.conventionalcommits.org/):
+   ```bash
+   git commit -m "feat(scope): description"
+   # Los pre-commit hooks se ejecutan automáticamente aquí ✓
+   ```
+9. **Push** tu rama feature:
+   ```bash
+   git push origin feat/amazing-feature
+   ```
+10. **Crea Pull Request** hacia `dev` (NO hacia `main`):
+    ```bash
+    gh pr create --base dev
+    ```
+
+### 🔧 Pre-commit Hooks
+
+Los siguientes hooks se ejecutan **automáticamente** en cada commit:
+
+- ✅ **Hygiene**: Trailing whitespace, EOF, YAML/JSON/TOML syntax
+- ✅ **Ruff**: Linter + formatter (auto-fix)
+- ✅ **Black**: Code formatter
+- ✅ **Bandit**: Security linter
+- ✅ **MyPy**: Type checker
+- ✅ **Custom**: Anti --no-verify detection
+
+Si algún hook falla, el commit se bloquea hasta que se corrija.
 
 ### Estándares de Calidad
 
@@ -255,7 +290,9 @@ Ver el [proyecto completo en GitHub](https://github.com/jarkillo/ci-guardian) pa
 - ✅ Docstrings en español, formato Google
 - ✅ Tests multiplataforma (Linux/Windows)
 - ✅ Sin vulnerabilidades de seguridad (Bandit, Ruff S-rules)
+- ✅ Todos los pre-commit hooks deben pasar
 
+Ver [CONTRIBUTING.md](CONTRIBUTING.md) para la guía completa de contribución.
 Ver [CLAUDE.md](CLAUDE.md) para documentación detallada del desarrollo.
 
 ## 📝 Licencia
