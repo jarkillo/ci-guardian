@@ -11,7 +11,7 @@ Este módulo prueba la funcionalidad del instalador de hooks, incluyendo:
 
 import platform
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -122,7 +122,7 @@ class TestValidacionNombreHook:
 
         # Assert
         assert (
-            HOOKS_PERMITIDOS == hooks_esperados
+            hooks_esperados == HOOKS_PERMITIDOS
         ), "HOOKS_PERMITIDOS debe contener exactamente los hooks esperados"
 
 
@@ -705,9 +705,8 @@ echo 'test'
         contenido_hook = "#!/bin/bash\necho 'valid hook'"
 
         # Act
-        with caplog.at_level("WARNING"):
-            with patch("platform.system", return_value="Linux"):
-                instalar_hook(repo_path, "pre-commit", contenido_hook)
+        with caplog.at_level("WARNING"), patch("platform.system", return_value="Linux"):
+            instalar_hook(repo_path, "pre-commit", contenido_hook)
 
         # Assert
         warning_records = [r for r in caplog.records if r.levelname == "WARNING"]

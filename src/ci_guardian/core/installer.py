@@ -95,8 +95,7 @@ def validar_shebang(contenido: str, sistema: str | None = None) -> None:
         if primera_linea.startswith("@echo off") or primera_linea.startswith("#!"):
             # Permitir tanto @echo off como shebangs Unix en Windows
             return
-        else:
-            raise ValueError("El hook debe comenzar con un shebang (#!) o '@echo off' (Windows)")
+        raise ValueError("El hook debe comenzar con un shebang (#!) o '@echo off' (Windows)")
 
     # En sistemas Unix, requerir shebang
     if not primera_linea.startswith("#!"):
