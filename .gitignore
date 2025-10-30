@@ -66,3 +66,16 @@ dmypy.json
 
 # Distribution
 *.whl
+
+# OS specific
+*.Zone.Identifier
+Thumbs.db
+.Trashes
+
+# Security
+*.pem
+*.key
+*.cert
+secrets.yaml
+.env.local
+.env.*.local
