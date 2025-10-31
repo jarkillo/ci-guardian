@@ -194,7 +194,7 @@ def crear_venv(ruta_proyecto: Path, nombre_venv: str = "venv") -> Path:
 
     try:
         # Ejecutar comando
-        resultado = subprocess.run(  # nosec B603 - command is validated, no user input
+        resultado = subprocess.run(  # nosec B603  # noqa: S603 - validated command, shell=False
             comando,
             capture_output=True,
             text=True,
