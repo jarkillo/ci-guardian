@@ -643,7 +643,11 @@ class TestEstaEnVenv:
     def test_debe_detectar_ejecucion_fuera_de_venv_con_sys_prefix(self) -> None:
         """Debe detectar cuando sys.prefix == sys.base_prefix."""
         # Arrange
-        with patch("sys.prefix", "/usr"), patch("sys.base_prefix", "/usr"):
+        with (
+            patch("sys.prefix", "/usr"),
+            patch("sys.base_prefix", "/usr"),
+            patch.dict(os.environ, {}, clear=True),
+        ):
             # Act
             resultado = esta_en_venv()
 
