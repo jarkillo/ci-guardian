@@ -99,6 +99,12 @@ ignore = [
     "SIM117", # Allow nested with statements (clearer in tests)
     "SIM105", # Allow try-except-pass (clearer than contextlib.suppress)
 ]
+"scripts/**/*.py" = [
+    "T201",   # Allow print in scripts
+]
+"src/ci_guardian/hooks/**/*.py" = [
+    "T201",   # Allow print in hooks (for error messages)
+]
 
 # Black configuration - Code formatter
 [tool.black]
