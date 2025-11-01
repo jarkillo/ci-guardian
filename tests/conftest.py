@@ -110,3 +110,156 @@ REM Hook de prueba para Windows
 echo Ejecutando hook de prueba
 exit /b 0
 """
+
+
+@pytest.fixture
+def venv_linux_mock(tmp_path: Path) -> Path:
+    """
+    Crea un entorno virtual mock para Linux/macOS.
+
+    Args:
+        tmp_path: Directorio temporal proporcionado por pytest
+
+    Returns:
+        Path al directorio del venv mock con estructura bin/python
+    """
+    venv = tmp_path / "venv"
+    venv.mkdir()
+    bin_dir = venv / "bin"
+    bin_dir.mkdir()
+    python_exe = bin_dir / "python"
+    python_exe.touch()
+    python_exe.chmod(0o755)
+    # También crear python3 como symlink común
+    python3_exe = bin_dir / "python3"
+    python3_exe.touch()
+    python3_exe.chmod(0o755)
+    return venv
+
+
+@pytest.fixture
+def venv_windows_mock(tmp_path: Path) -> Path:
+    """
+    Crea un entorno virtual mock para Windows.
+
+    Args:
+        tmp_path: Directorio temporal proporcionado por pytest
+
+    Returns:
+        Path al directorio del venv mock con estructura Scripts/python.exe
+    """
+    venv = tmp_path / "venv"
+    venv.mkdir()
+    scripts_dir = venv / "Scripts"
+    scripts_dir.mkdir()
+    python_exe = scripts_dir / "python.exe"
+    python_exe.touch()
+    return venv
+
+
+@pytest.fixture
+def proyecto_con_venv_linux(tmp_path: Path) -> Path:
+    """
+    Crea un proyecto mock con venv funcional de Linux.
+
+    Args:
+        tmp_path: Directorio temporal proporcionado por pytest
+
+    Returns:
+        Path al directorio del proyecto con venv/ configurado
+    """
+    proyecto = tmp_path / "proyecto"
+    proyecto.mkdir()
+    venv = proyecto / "venv"
+    venv.mkdir()
+    bin_dir = venv / "bin"
+    bin_dir.mkdir()
+    python_exe = bin_dir / "python"
+    python_exe.touch()
+    python_exe.chmod(0o755)
+    return proyecto
+
+
+@pytest.fixture
+def proyecto_con_venv_windows(tmp_path: Path) -> Path:
+    """
+    Crea un proyecto mock con venv funcional de Windows.
+
+    Args:
+        tmp_path: Directorio temporal proporcionado por pytest
+
+    Returns:
+        Path al directorio del proyecto con venv/ configurado
+    """
+    proyecto = tmp_path / "proyecto"
+    proyecto.mkdir()
+    venv = proyecto / "venv"
+    venv.mkdir()
+    scripts_dir = venv / "Scripts"
+    scripts_dir.mkdir()
+    python_exe = scripts_dir / "python.exe"
+    python_exe.touch()
+    return proyecto
+
+
+@pytest.fixture
+def proyecto_con_dotvenv(tmp_path: Path) -> Path:
+    """
+    Crea un proyecto mock con .venv/ en lugar de venv/.
+
+    Args:
+        tmp_path: Directorio temporal proporcionado por pytest
+
+    Returns:
+        Path al directorio del proyecto con .venv/ configurado
+    """
+    proyecto = tmp_path / "proyecto"
+    proyecto.mkdir()
+    venv = proyecto / ".venv"
+    venv.mkdir()
+    bin_dir = venv / "bin"
+    bin_dir.mkdir()
+    python_exe = bin_dir / "python"
+    python_exe.touch()
+    python_exe.chmod(0o755)
+    return proyecto
+
+
+@pytest.fixture
+def venv_corrupto(tmp_path: Path) -> Path:
+    """
+    Crea un directorio venv corrupto (sin ejecutable Python).
+
+    Args:
+        tmp_path: Directorio temporal proporcionado por pytest
+
+    Returns:
+        Path al directorio del venv corrupto
+    """
+    venv = tmp_path / "venv"
+    venv.mkdir()
+    bin_dir = venv / "bin"
+    bin_dir.mkdir()
+    # No se crea el ejecutable Python
+    return venv
+
+
+@pytest.fixture
+def venv_sin_permisos(tmp_path: Path) -> Path:
+    """
+    Crea un venv con ejecutable Python sin permisos de ejecución.
+
+    Args:
+        tmp_path: Directorio temporal proporcionado por pytest
+
+    Returns:
+        Path al directorio del venv sin permisos
+    """
+    venv = tmp_path / "venv"
+    venv.mkdir()
+    bin_dir = venv / "bin"
+    bin_dir.mkdir()
+    python_exe = bin_dir / "python"
+    python_exe.touch()
+    python_exe.chmod(0o644)  # Sin permisos de ejecución
+    return venv
