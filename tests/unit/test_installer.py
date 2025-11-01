@@ -21,6 +21,7 @@ class TestDeteccionRepositorioGit:
         repo_path = tmp_path / "repo"
         repo_path.mkdir()
         (repo_path / ".git").mkdir()
+        (repo_path / ".git" / "hooks").mkdir()
 
         # Act
         from ci_guardian.core.installer import es_repositorio_git
@@ -646,7 +647,7 @@ class TestEdgeCases:
         with patch.object(Path, "write_text", side_effect=PermissionError("No write access")):
             # Act & Assert
             with pytest.raises(PermissionError, match="No write access"):
-                instalar_hook(repo_path, "pre-commit", "contenido")
+                instalar_hook(repo_path, "pre-commit", "#!/usr/bin/env python3\nprint('test')")
 
     def test_debe_manejar_disco_lleno(self, tmp_path: Path) -> None:
         """Debe manejar disco lleno (OSError)."""
@@ -662,7 +663,7 @@ class TestEdgeCases:
         with patch.object(Path, "write_text", side_effect=OSError("No space left on device")):
             # Act & Assert
             with pytest.raises(OSError, match="No space left on device"):
-                instalar_hook(repo_path, "pre-commit", "contenido")
+                instalar_hook(repo_path, "pre-commit", "#!/usr/bin/env python3\nprint('test')")
 
     def test_debe_manejar_rutas_relativas(self, tmp_path: Path) -> None:
         """Debe manejar rutas relativas correctamente."""
@@ -790,6 +791,10 @@ class TestIntegracionMultiplataforma:
     )
     def test_debe_manejar_separadores_de_ruta(self, tmp_path: Path, separador_ruta: str) -> None:
         """Debe manejar diferentes separadores de ruta."""
+        # Skip backslash test en sistemas no-Windows (backslash no es separador en Unix)
+        if separador_ruta == "\\" and platform.system() != "Windows":
+            pytest.skip("Backslash como separador solo aplica en Windows")
+
         # Arrange
         repo_path = tmp_path / "repo"
         repo_path.mkdir()
