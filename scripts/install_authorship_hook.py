@@ -30,8 +30,13 @@ def main() -> int:
         print(f"❌ Error: No se encuentra el hook fuente en {HOOK_SOURCE}")
         return 1
 
+    # Obtener el python del venv actual
+    import sys
+
+    python_executable = sys.executable
+
     # Crear el script del hook
-    hook_content = """#!/usr/bin/env python3
+    hook_content = f"""#!{python_executable}
 # CI-GUARDIAN-HOOK
 # This hook was installed by CI Guardian to prevent Claude co-authorship
 
