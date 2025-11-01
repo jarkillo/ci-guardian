@@ -35,6 +35,9 @@ def main() -> int:
 
     python_executable = sys.executable
 
+    # Obtener ruta absoluta al directorio src
+    src_dir = REPO_ROOT / "src"
+
     # Crear el script del hook
     hook_content = f"""#!{python_executable}
 # CI-GUARDIAN-HOOK
@@ -43,8 +46,11 @@ def main() -> int:
 import sys
 from pathlib import Path
 
+# Path to the src directory (para imports)
+CI_GUARDIAN_SRC_PATH = r"{src_dir}"
+
 # Path to the hook implementation
-hook_impl = Path(__file__).parent.parent.parent / "src" / "ci_guardian" / "hooks" / "commit-msg.py"
+hook_impl = Path(r"{HOOK_SOURCE}")
 
 # Execute the hook
 exec(open(hook_impl).read())

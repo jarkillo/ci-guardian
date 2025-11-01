@@ -10,7 +10,13 @@ import sys
 from pathlib import Path
 
 # Añadir src/ al path para poder importar ci_guardian
-src_path = Path(__file__).parent.parent.parent
+# NOTA: Cuando este hook se ejecuta vía wrapper instalado, el wrapper
+# debe definir CI_GUARDIAN_SRC_PATH antes de hacer exec()
+if "CI_GUARDIAN_SRC_PATH" in globals():
+    src_path = Path(CI_GUARDIAN_SRC_PATH)  # type: ignore[name-defined] # noqa: F821
+else:
+    # Fallback para ejecución directa (testing)
+    src_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(src_path))
 
 from ci_guardian.validators.authorship import validar_autoria_commit  # noqa: E402
