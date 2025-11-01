@@ -551,6 +551,62 @@ class TestCrearVenv:
         with pytest.raises(ValueError, match="Nombre de venv no válido"):
             crear_venv(proyecto, nombre_venv="venv && malicious")
 
+    def test_debe_rechazar_paths_absolutos_windows(self, tmp_path: Path) -> None:
+        """Debe rechazar paths absolutos de Windows (C:\\, D:/, etc.)."""
+        # Arrange
+        proyecto = tmp_path / "proyecto"
+        proyecto.mkdir()
+
+        # Act & Assert - Windows drive letters
+        # En Linux, estos paths se detectan por ":" (caracteres peligrosos)
+        # En Windows, se detectan por is_absolute()
+        with pytest.raises(ValueError, match="(path absoluto|caracteres peligrosos)"):
+            crear_venv(proyecto, nombre_venv="C:\\Windows\\System32\\venv")
+
+        with pytest.raises(ValueError, match="(path absoluto|caracteres peligrosos)"):
+            crear_venv(proyecto, nombre_venv="D:/tmp/venv")
+
+    @pytest.mark.skipif(platform.system() != "Windows", reason="UNC paths only on Windows")
+    def test_debe_rechazar_unc_paths_windows(self, tmp_path: Path) -> None:
+        """Debe rechazar UNC paths de Windows (\\\\server\\share)."""
+        # Arrange
+        proyecto = tmp_path / "proyecto"
+        proyecto.mkdir()
+
+        # Act & Assert - UNC paths
+        # En Linux, \\server\share\venv es un nombre relativo válido (no es peligroso)
+        # En Windows, es un path absoluto UNC y debe ser rechazado
+        with pytest.raises(ValueError, match="path absoluto"):
+            crear_venv(proyecto, nombre_venv="\\\\server\\share\\venv")
+
+    def test_debe_rechazar_paths_absolutos_unix(self, tmp_path: Path) -> None:
+        """Debe rechazar paths absolutos Unix (/path)."""
+        # Arrange
+        proyecto = tmp_path / "proyecto"
+        proyecto.mkdir()
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="path absoluto"):
+            crear_venv(proyecto, nombre_venv="/tmp/venv")  # noqa: S108 - Testing path validation
+
+        with pytest.raises(ValueError, match="path absoluto"):
+            crear_venv(
+                proyecto, nombre_venv="/etc/malicious_venv"
+            )  # noqa: S108 - Testing path validation
+
+    @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
+    def test_debe_rechazar_nombres_reservados_windows(self, tmp_path: Path) -> None:
+        """Debe rechazar nombres reservados de Windows (CON, PRN, AUX, etc.)."""
+        # Arrange
+        proyecto = tmp_path / "proyecto"
+        proyecto.mkdir()
+
+        # Act & Assert
+        nombres_reservados = ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1"]
+        for nombre in nombres_reservados:
+            with pytest.raises(ValueError, match="nombre reservado"):
+                crear_venv(proyecto, nombre_venv=nombre)
+
 
 class TestObtenerPythonEjecutable:
     """Tests para la función obtener_python_ejecutable()."""

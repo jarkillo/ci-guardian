@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 VENV_NAMES = ["venv", ".venv", "env", ".env", "ENV"]
 
 # Caracteres peligrosos para nombres de venv
-CARACTERES_PELIGROSOS = {";", "&", "|", "$", "`", "\n", "\r"}
+CARACTERES_PELIGROSOS = {";", "&", "|", "$", "`", "\n", "\r", ":"}
 
 
 def obtener_python_ejecutable(ruta_venv: Path) -> Path:
@@ -177,17 +177,40 @@ def crear_venv(ruta_proyecto: Path, nombre_venv: str = "venv") -> Path:
         >>> print(f"Venv creado: {venv}")
     """
     # Validar nombre_venv (seguridad)
+    # 1. Rechazar path traversal
     if ".." in nombre_venv:
-        raise ValueError(f"Nombre de venv no válido: {nombre_venv}")
+        raise ValueError(f"Nombre de venv no válido (path traversal): {nombre_venv}")
 
-    if nombre_venv.startswith("/") or nombre_venv.startswith("\\"):
-        raise ValueError(f"Nombre de venv no válido: {nombre_venv}")
+    # 2. Rechazar paths absolutos (Linux/Windows)
+    # Detecta: /path, \path, C:\path, D:/path, \\network\share, etc.
+    if Path(nombre_venv).is_absolute():
+        raise ValueError(f"Nombre de venv no válido (path absoluto): {nombre_venv}")
 
+    # 3. Rechazar nombres reservados de Windows (CON, PRN, AUX, etc.)
+    try:
+        if Path(nombre_venv).is_reserved():
+            raise ValueError(f"Nombre de venv no válido (nombre reservado): {nombre_venv}")
+    except (AttributeError, NotImplementedError):
+        # is_reserved() no está disponible en todas las plataformas/versiones
+        pass
+
+    # 4. Rechazar caracteres peligrosos
     if any(c in nombre_venv for c in CARACTERES_PELIGROSOS):
-        raise ValueError(f"Nombre de venv no válido: {nombre_venv}")
+        raise ValueError(f"Nombre de venv no válido (caracteres peligrosos): {nombre_venv}")
 
     # Path al venv a crear
     ruta_venv = ruta_proyecto / nombre_venv
+
+    # 5. Verificar que el path resuelto está dentro de ruta_proyecto (defensa en profundidad)
+    try:
+        ruta_venv_resuelta = ruta_venv.resolve()
+        ruta_proyecto_resuelta = ruta_proyecto.resolve()
+        ruta_venv_resuelta.relative_to(ruta_proyecto_resuelta)
+    except ValueError as err:
+        # El path resuelto no está dentro del proyecto
+        raise ValueError(
+            "Path traversal detectado: el venv resuelto está fuera del proyecto"
+        ) from err
 
     # Comando para crear venv
     comando = [sys.executable, "-m", "venv", str(ruta_venv)]
