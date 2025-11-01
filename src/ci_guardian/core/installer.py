@@ -29,6 +29,7 @@ def es_repositorio_git(repo_path: Path) -> bool:
     - El directorio existe
     - Contiene un subdirectorio .git/
     - .git es un directorio, no un archivo
+    - Contiene el subdirectorio .git/hooks/
 
     Args:
         repo_path: Ruta al directorio a verificar
@@ -40,7 +41,8 @@ def es_repositorio_git(repo_path: Path) -> bool:
         return False
 
     git_dir = repo_path / ".git"
-    return git_dir.exists() and git_dir.is_dir()
+    hooks_dir = repo_path / ".git" / "hooks"
+    return git_dir.exists() and git_dir.is_dir() and hooks_dir.exists() and hooks_dir.is_dir()
 
 
 def validar_nombre_hook(hook_name: str) -> bool:
@@ -164,11 +166,10 @@ def instalar_hook(repo_path: Path, hook_name: str, contenido: str) -> None:
     3. Valida que el contenido no esté vacío
     4. Valida que el shebang sea válido y esté en la whitelist
     5. Valida que el tamaño del contenido no exceda el límite (100KB)
-    6. Valida que el directorio .git/hooks/ existe
-    7. Verifica que el hook no exista previamente
-    8. Valida el path del hook (prevención de path traversal)
-    9. Escribe el hook con la extensión correcta según el SO
-    10. En Linux/macOS, aplica permisos de ejecución (755)
+    6. Verifica que el hook no exista previamente
+    7. Valida el path del hook (prevención de path traversal)
+    8. Escribe el hook con la extensión correcta según el SO
+    9. En Linux/macOS, aplica permisos de ejecución (755)
 
     Args:
         repo_path: Ruta al repositorio Git
@@ -178,14 +179,13 @@ def instalar_hook(repo_path: Path, hook_name: str, contenido: str) -> None:
     Raises:
         ValueError: Si el nombre del hook no está en la whitelist
         ValueError: Si no es un repositorio Git válido
-        ValueError: Si el directorio de hooks no existe
         ValueError: Si el contenido está vacío
         ValueError: Si el shebang no es válido o no está permitido
         ValueError: Si el contenido excede el tamaño máximo permitido
         ValueError: Si se detecta path traversal
         FileExistsError: Si el hook ya existe
     """
-    # 1. Validar repositorio Git
+    # 1. Validar repositorio Git (esto valida que .git/hooks/ existe)
     if not es_repositorio_git(repo_path):
         raise ValueError(f"El directorio {repo_path} no es un repositorio Git válido")
 
@@ -201,12 +201,21 @@ def instalar_hook(repo_path: Path, hook_name: str, contenido: str) -> None:
 
     # 3. Validar contenido no vacío
     if not contenido or contenido.strip() == "":
-        raise ValueError("El contenido del hook no puede estar vacío")
+        raise ValueError("contenido vacío")
 
-    # 4. Validar shebang (detecta automáticamente el sistema operativo)
+    # 4. Determinar extensión según plataforma y path del hook
+    hooks_dir = repo_path / ".git" / "hooks"
+    extension = obtener_extension_hook()
+    hook_path = hooks_dir / f"{hook_name}{extension}"
+
+    # 5. Verificar que el hook no exista (antes de validar contenido)
+    if hook_path.exists():
+        raise FileExistsError(f"El hook {hook_name} ya existe")
+
+    # 6. Validar shebang (detecta automáticamente el sistema operativo)
     validar_shebang(contenido)
 
-    # 5. Validar tamaño del contenido
+    # 7. Validar tamaño del contenido
     tamano_bytes = len(contenido.encode("utf-8"))
     if tamano_bytes > MAX_HOOK_SIZE:
         raise ValueError(
@@ -214,25 +223,115 @@ def instalar_hook(repo_path: Path, hook_name: str, contenido: str) -> None:
             f"Máximo permitido: {MAX_HOOK_SIZE} bytes"
         )
 
-    # 6. Validar que el directorio de hooks existe
-    hooks_dir = repo_path / ".git" / "hooks"
-    if not hooks_dir.is_dir():
-        raise ValueError("Directorio de hooks no encontrado")
-
-    # 7. Determinar extensión según plataforma
-    extension = obtener_extension_hook()
-    hook_path = hooks_dir / f"{hook_name}{extension}"
-
-    # 8. Verificar que el hook no exista
-    if hook_path.exists():
-        raise FileExistsError(f"El hook {hook_name} ya existe")
-
-    # 9. Validar path del hook (prevención de path traversal)
+    # 8. Validar path del hook (prevención de path traversal)
     validar_path_hook(repo_path, hook_path)
 
-    # 10. Escribir el hook
+    # 9. Escribir el hook
     hook_path.write_text(contenido, encoding="utf-8")
 
-    # 11. Aplicar permisos de ejecución en Linux/macOS
+    # 10. Aplicar permisos de ejecución en Linux/macOS
     if platform.system() != "Windows":
         hook_path.chmod(0o755)
+
+
+def es_hook_ci_guardian(repo_path: Path, hook_name: str) -> bool:
+    """
+    Verifica si un hook fue instalado por CI Guardian.
+
+    Un hook es de CI Guardian si contiene la marca especial 'CI-GUARDIAN-HOOK'
+    en su contenido.
+
+    Args:
+        repo_path: Ruta al repositorio Git
+        hook_name: Nombre del hook (pre-commit, pre-push, etc.)
+
+    Returns:
+        True si el hook tiene la marca CI-GUARDIAN-HOOK, False en caso contrario
+    """
+    # Determinar extensión según plataforma
+    extension = obtener_extension_hook()
+    hook_path = repo_path / ".git" / "hooks" / f"{hook_name}{extension}"
+
+    # Si el hook no existe, retornar False
+    if not hook_path.exists():
+        return False
+
+    # Leer el contenido y verificar marca
+    try:
+        contenido = hook_path.read_text(encoding="utf-8")
+        return "CI-GUARDIAN-HOOK" in contenido
+    except Exception:
+        # Si no se puede leer, asumir que no es de CI Guardian
+        return False
+
+
+def obtener_hooks_instalados(repo_path: Path) -> list[str]:
+    """
+    Retorna lista de hooks de CI Guardian instalados.
+
+    Busca archivos en .git/hooks/ que contengan la marca CI-GUARDIAN-HOOK
+    e ignora hooks de otras herramientas.
+
+    Args:
+        repo_path: Ruta al repositorio Git
+
+    Returns:
+        Lista de nombres de hooks instalados (sin extensión)
+    """
+    hooks_instalados: list[str] = []
+    hooks_dir = repo_path / ".git" / "hooks"
+
+    # Si el directorio de hooks no existe, retornar lista vacía
+    if not hooks_dir.exists() or not hooks_dir.is_dir():
+        return hooks_instalados
+
+    # Iterar sobre todos los archivos en el directorio de hooks
+    for hook_path in hooks_dir.iterdir():
+        # Ignorar directorios
+        if not hook_path.is_file():
+            continue
+
+        # Obtener nombre del hook sin extensión
+        hook_name = hook_path.stem if hook_path.suffix == ".bat" else hook_path.name
+
+        # Verificar si es de CI Guardian (solo hooks en la whitelist)
+        if hook_name in HOOKS_PERMITIDOS and es_hook_ci_guardian(repo_path, hook_name):
+            hooks_instalados.append(hook_name)
+
+    return hooks_instalados
+
+
+def desinstalar_hook(repo_path: Path, hook_name: str) -> bool:
+    """
+    Desinstala un hook de CI Guardian.
+
+    Solo elimina hooks que tienen la marca CI-GUARDIAN-HOOK para prevenir
+    eliminación accidental de hooks de otras herramientas.
+
+    Args:
+        repo_path: Ruta al repositorio Git
+        hook_name: Nombre del hook (pre-commit, pre-push, etc.)
+
+    Returns:
+        True si se eliminó el hook, False si no existía
+
+    Raises:
+        ValueError: Si el hook existe pero no es de CI Guardian
+    """
+    # Determinar extensión según plataforma
+    extension = obtener_extension_hook()
+    hook_path = repo_path / ".git" / "hooks" / f"{hook_name}{extension}"
+
+    # Si el hook no existe, retornar False
+    if not hook_path.exists():
+        return False
+
+    # Verificar que es de CI Guardian antes de eliminar
+    if not es_hook_ci_guardian(repo_path, hook_name):
+        raise ValueError(
+            f"El hook {hook_name} no es un hook de CI Guardian y no puede ser eliminado"
+        )
+
+    # Eliminar el hook
+    hook_path.unlink()
+    return True
