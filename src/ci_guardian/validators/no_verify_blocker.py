@@ -5,9 +5,35 @@ Este módulo implementa el sistema de tokens para prevenir que commits
 se realicen usando el flag --no-verify (bypass de hooks).
 
 Sistema de funcionamiento:
-1. pre-commit: genera token y lo guarda
+1. pre-commit: ejecuta todas las validaciones → SI TODAS PASAN → genera token
 2. post-commit: valida token existe y lo consume
 3. Si no existe token → commit usó --no-verify → revertir
+
+IMPORTANTE - Timing de Generación del Token:
+El token debe generarse SOLO si todas las validaciones del pre-commit
+pasan exitosamente. Esto previene tokens huérfanos de commits abortados.
+
+Ejemplo de uso correcto en pre-commit hook:
+    # 1. Ejecutar todas las validaciones
+    if not validar_ruff():
+        sys.exit(1)
+    if not validar_black():
+        sys.exit(1)
+    if not validar_authorship():
+        sys.exit(1)
+
+    # 2. SOLO si todas pasaron, generar token
+    token = generar_token_seguro()
+    guardar_token(repo_path, token)
+
+Ejemplo INCORRECTO (vulnerable a reuso de tokens):
+    # ❌ NUNCA hacer esto:
+    token = generar_token_seguro()  # Genera token al INICIO
+    guardar_token(repo_path, token)
+
+    # Si validaciones fallan después, el token queda huérfano
+    if not validar_ruff():
+        sys.exit(1)  # Token queda en disco, puede reutilizarse
 """
 
 import platform
@@ -16,7 +42,7 @@ import subprocess
 from pathlib import Path
 
 # Nombre del archivo de token en .git/
-TOKEN_FILENAME = "CI_GUARDIAN_TOKEN"  # noqa: S105 (no es una contraseña, es un nombre de archivo)
+TOKEN_FILENAME = "CI_GUARDIAN_TOKEN"  # noqa: S105  # nosec B105 - Not a password, it's a filename
 
 
 def generar_token_seguro() -> str:
