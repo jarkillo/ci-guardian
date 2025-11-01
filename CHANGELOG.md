@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Core Features
+- 🔒 **Anti --no-verify Validator (LIB-3)** - Sistema de tokens para prevenir bypass de hooks
+  - Token criptográficamente seguro (256 bits usando secrets.token_hex)
+  - Validación single-use: el token se consume al validar
+  - Reversion automática de commits con --no-verify
+  - Permisos seguros (600) en archivos de token
+  - Detección de archivos corruptos o con permisos inseguros
+  - 42 tests, 94% de cobertura
+  - Prevención de command injection, path traversal
+  - Documentación clara del timing correcto de generación de tokens
+
+- 👤 **Authorship Validator (LIB-6)** - Validación de autoría de commits
+  - Rechaza commits con Co-Authored-By: Claude
+  - Validación de formato de mensaje de commit
+  - 38 tests, 90% de cobertura
+  - Hook commit-msg instalado y funcionando
+
+- 🎨 **Code Quality Executor (LIB-4)** - Ejecución de Ruff y Black
+  - Ejecutor de Ruff (linter) con output JSON
+  - Ejecutor de Black (formatter) con verificación
+  - Validación de archivos Python
+  - Manejo de timeouts (60s)
+  - 42 tests, 99% de cobertura
+  - subprocess seguro (shell=False)
+
 #### Infrastructure & Workflow
 - 🔧 **Pre-commit hooks** - Framework de pre-commit instalado y configurado
   - 15 hooks activos: trailing whitespace, EOF fixer, YAML/JSON/TOML checks
@@ -44,12 +69,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Todos los commits pasan por pre-commit hooks automáticamente
   - Workflow: feature branch → push → PR → merge
 
+### Fixed
+- 🐛 **Token Generation Timing (LIB-3)** - Documentación del timing correcto
+  - Documentado que el token debe generarse al FINAL del pre-commit
+  - Previene tokens huérfanos de commits abortados
+  - Ejemplos de uso correcto e incorrecto añadidos
+  - Configuración de Bandit para skip de falsos positivos (B404, B603, B607)
+
+### Security
+- 🔒 **P1 Vulnerability Fix (LIB-3)** - Prevención de reuso de tokens
+  - Documentado el patrón arquitectónico correcto
+  - Token solo debe generarse después de todas las validaciones
+  - Previene ataque: commit abort → token orphan → reuse with --no-verify
+
 ### Planned
-- LIB-2: Virtual Environment Manager - Detección/gestión de entornos virtuales
-- LIB-4: Ruff & Black Integration - Ejecución automática de linters
-- LIB-3: No-Verify Blocker - Sistema de tokens anti-bypass
+- LIB-2: Virtual Environment Manager - Detección/gestión de entornos virtuales (COMPLETED, needs integration)
 - LIB-8: CLI Interface - Comandos install/uninstall/status/check
-- LIB-6: Authorship Validator - Validación de autoría de commits
 - LIB-5: Security Audit - Integración con Bandit y Safety
 - LIB-7: GitHub Actions Runner - Ejecución local de workflows
 - LIB-9: Integration Tests - Tests de flujo completo

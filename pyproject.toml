@@ -115,7 +115,12 @@ skip-string-normalization = false
 # Bandit configuration - Security linter
 [tool.bandit]
 exclude_dirs = ["tests", "build", "dist"]
-skips = ["B101"]  # Allow assert in code (we need it for validation)
+skips = [
+    "B101",  # Allow assert in code (we need it for validation)
+    "B404",  # Allow subprocess import (we use it safely with shell=False)
+    "B603",  # Allow subprocess without shell=True (this is the CORRECT behavior)
+    "B607",  # Allow partial path for 'git' (git is in PATH, using full path would break)
+]
 
 # Pytest configuration
 [tool.pytest.ini_options]
