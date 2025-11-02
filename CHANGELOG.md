@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validates CLI availability (`ci-guardian --version`, `--help`)
   - Tests full workflow: hook installation, commit, push
   - Verifies 100% hook installation via `ci-guardian status`
+  - **Properly triggers pre-push hook** by using `git push origin HEAD` instead of hardcoded branch
+  - Configures `init.defaultBranch=main` to ensure consistent branch naming
+  - Conditionally tests push workflow only if pre-push hook exists
   - Blocks TestPyPI and PyPI publication if smoke tests fail
   - Prevents critical bugs from reaching production (Post-Mortem v0.1.0)
   - Integration with `publish-testpypi` and `publish-pypi` jobs via `needs` dependency

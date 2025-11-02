@@ -112,6 +112,7 @@ jobs:
           cd /tmp
           git config --global user.name "Smoke Test Bot"
           git config --global user.email "smoke@test.bot"
+          git config --global init.defaultBranch main
           git init smoke-test-repo
           cd smoke-test-repo
 
@@ -136,18 +137,27 @@ jobs:
           git commit -m "test: smoke test commit"
           echo "✅ Commit workflow passed"
 
-      - name: Test push workflow (if pre-push exists)
+      - name: Test push workflow (triggers pre-push hook)
         run: |
           source /tmp/smoke-venv/bin/activate
           cd /tmp/smoke-test-repo
 
-          # Crear remote de prueba
-          git init --bare /tmp/smoke-remote.git
-          git remote add origin /tmp/smoke-remote.git
+          # Verificar si existe hook pre-push
+          if [ -f .git/hooks/pre-push ]; then
+            echo "ℹ️  pre-push hook detected, testing push workflow"
 
-          # Ejecutar push (trigger pre-push hook si existe)
-          git push origin main || true  # Allow failure if pre-push doesn't exist
-          echo "✅ Push workflow tested"
+            # Crear remote de prueba
+            git init --bare /tmp/smoke-remote.git
+            git remote add origin /tmp/smoke-remote.git
+
+            # Ejecutar push (trigger pre-push hook)
+            # Usa HEAD para pushear la rama actual (main)
+            git push origin HEAD
+            echo "✅ Push workflow passed (pre-push hook executed)"
+          else
+            echo "ℹ️  No pre-push hook installed, skipping push test"
+            echo "✅ Push workflow test skipped (hook not present)"
+          fi
 
       - name: Smoke tests summary
         run: |
