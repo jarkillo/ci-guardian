@@ -209,9 +209,7 @@ src/ci_guardian/
 ├── cli.py                      # CLI con Click (5 comandos)
 ├── core/
 │   ├── installer.py            # Instalación de hooks (LIB-1)
-│   ├── venv_manager.py         # Detección/creación de venv (LIB-2)
-│   ├── config.py               # Gestión de configuración
-│   └── hook_runner.py          # Ejecución de validaciones
+│   └── venv_manager.py         # Detección/creación de venv (LIB-2)
 ├── validators/
 │   ├── code_quality.py         # Ruff & Black (LIB-4)
 │   ├── security.py             # Bandit & Safety (LIB-5)

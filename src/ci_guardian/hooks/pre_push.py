@@ -117,6 +117,14 @@ def main() -> int:
 
     Returns:
         0 si todas las validaciones pasan, 1 si alguna falla
+
+    Nota arquitectural (LIB-23):
+        La orquestación de validadores está inline (no en core/hook_runner.py)
+        porque solo 2 de 4 hooks necesitan orquestación actualmente.
+
+        Según la Regla de Tres: "No abstraer hasta tener 3+ casos similares".
+        Ver CLAUDE.md sección "Decisiones Arquitecturales Postponed" para
+        triggers que justificarían crear hook_runner.py en el futuro.
     """
     # Detectar si se debe skip (variable de entorno)
     if os.environ.get("CI_GUARDIAN_SKIP_TESTS") == "1":
