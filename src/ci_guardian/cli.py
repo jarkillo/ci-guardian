@@ -71,6 +71,35 @@ def _obtener_repo_path(repo: str) -> Path:
     return repo_path
 
 
+def _validar_hook_existe(hook_name: str) -> None:
+    """
+    Valida que el módulo del hook exista antes de instalar.
+
+    Esta función previene el bug de v0.1.0 donde hooks rotos se instalaban
+    porque no se validaba la existencia del módulo Python correspondiente.
+
+    Args:
+        hook_name: Nombre del hook (pre-commit, pre-push, etc.)
+
+    Raises:
+        ValueError: Si el módulo del hook no existe
+    """
+    from importlib import import_module
+
+    modulo_nombre = hook_name.replace("-", "_")
+    modulo_path = f"ci_guardian.hooks.{modulo_nombre}"
+
+    try:
+        import_module(modulo_path)
+    except ModuleNotFoundError as e:
+        raise ValueError(
+            f"No se puede instalar el hook '{hook_name}': "
+            f"el módulo '{modulo_path}' no existe.\n"
+            f"Esto es un bug de CI Guardian. Por favor reporta en: "
+            f"https://github.com/jarkillo/ci-guardian/issues"
+        ) from e
+
+
 def _obtener_contenido_hook(hook_name: str) -> str:
     """
     Genera el contenido de un hook de CI Guardian.
@@ -205,6 +234,9 @@ def install(repo: str, force: bool) -> None:
         # Instalar cada hook
         hooks_instalados = 0
         for hook_name in HOOKS_ESPERADOS:
+            # Validar que el módulo del hook existe ANTES de instalar
+            _validar_hook_existe(hook_name)
+
             contenido = _obtener_contenido_hook(hook_name)
             try:
                 instalar_hook(repo_path, hook_name, contenido)

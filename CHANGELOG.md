@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 🛡️ **Runtime Module Validation (LIB-21)** - Fail-Fast Prevention
+  - CLI validates hook modules exist BEFORE installing them
+  - New `_validar_hook_existe()` function uses `import_module()`
+  - Called in `install` command for each hook before installation
+  - Fails with clear error message if module missing
+  - Error message includes GitHub issue reporting link
+  - Would have prevented v0.1.0 bug at install time instead of runtime
+  - Tests validate function behavior with valid and invalid hooks
+  - 2 new tests: valid hooks pass, invalid hooks fail with clear message
+
 - ✅ **Module Validation Test (LIB-16)** - Post-Mortem Prevention Measure
   - New test validates HOOKS_ESPERADOS has corresponding modules
   - Test imports each module using `import_module()`
