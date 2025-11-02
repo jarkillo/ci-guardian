@@ -1348,3 +1348,40 @@ def test_debe_validar_que_todos_los_hooks_esperados_tienen_modulo_correspondient
                 f"Este bug causó v0.1.0 cuando pre-push estaba en HOOKS_ESPERADOS\n"
                 f"pero pre_push.py no existía."
             )
+
+
+def test_validar_hook_existe_debe_pasar_con_hooks_validos() -> None:
+    """
+    Valida que _validar_hook_existe() pasa sin error para hooks implementados.
+
+    Test para LIB-21: Validación runtime de módulos antes de instalar.
+    """
+    from ci_guardian.cli import HOOKS_ESPERADOS, _validar_hook_existe
+
+    # Act & Assert: No debe lanzar excepción
+    for hook_name in HOOKS_ESPERADOS:
+        _validar_hook_existe(hook_name)  # No debe fallar
+
+
+def test_validar_hook_existe_debe_fallar_con_hook_inexistente() -> None:
+    """
+    Valida que _validar_hook_existe() falla con error claro si módulo no existe.
+
+    Test para LIB-21: Validación runtime de módulos antes de instalar.
+    Este test simula el bug de v0.1.0 donde pre-push estaba en lista pero
+    módulo pre_push.py no existía.
+    """
+    from ci_guardian.cli import _validar_hook_existe
+
+    # Arrange: hook que no tiene módulo implementado
+    hook_inexistente = "pre-push"
+
+    # Act & Assert
+    with pytest.raises(ValueError) as exc_info:
+        _validar_hook_existe(hook_inexistente)
+
+    error_msg = str(exc_info.value)
+    assert "No se puede instalar el hook 'pre-push'" in error_msg
+    assert "ci_guardian.hooks.pre_push" in error_msg
+    assert "no existe" in error_msg
+    assert "github.com/jarkillo/ci-guardian/issues" in error_msg
