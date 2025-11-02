@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests validate function behavior with valid and invalid hooks
   - 2 new tests: valid hooks pass, invalid hooks fail with clear message
 
+- 🧪 **End-to-End Git Push Test (LIB-20)** - Post-Mortem Prevention Measure
+  - New integration test validates complete workflow: install → commit → push
+  - Test executes `ci-guardian install`, creates commit, then performs `git push`
+  - Creates local bare repository for testing (no external dependencies)
+  - Validates that push succeeds without ModuleNotFoundError
+  - Would have caught v0.1.0 bug where pre-push module was missing
+  - Test located in `tests/integration/test_full_workflow.py`
+  - Marked with `@pytest.mark.integration` for CI/CD execution
+  - Clear error message if push fails with ModuleNotFoundError
+
 - ✅ **Module Validation Test (LIB-16)** - Post-Mortem Prevention Measure
   - New test validates HOOKS_ESPERADOS has corresponding modules
   - Test imports each module using `import_module()`
