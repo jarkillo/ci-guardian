@@ -6,10 +6,17 @@ consumo de minutos de CI/CD y detectar errores antes del push.
 
 Usa 'act' (https://github.com/nektos/act) cuando está disponible, con fallback
 a ejecución directa de herramientas (pytest, ruff, black) cuando no lo está.
+
+ADVERTENCIA DE SEGURIDAD:
+act ejecuta workflows en contenedores Docker locales. NUNCA ejecutes workflows
+de repositorios no confiables, ya que pueden ejecutar código arbitrario.
 """
 
+import logging
 import subprocess
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def esta_act_instalado() -> bool:
@@ -56,15 +63,40 @@ def ejecutar_workflow_con_act(
     # Validar evento (whitelist)
     EVENTOS_PERMITIDOS = {"push", "pull_request", "workflow_dispatch", "schedule"}
     if evento not in EVENTOS_PERMITIDOS:
+        logger.warning(f"Intento de usar evento no permitido: {evento}")
         raise ValueError(f"evento inválido: {evento}")
 
-    # Validar path traversal
-    if ".." in str(workflow_file):
-        raise ValueError("path traversal detectado en workflow_file")
+    # Validar path traversal de forma robusta
+    try:
+        workflow_file = workflow_file.resolve(strict=True)
+    except (OSError, RuntimeError) as e:
+        logger.error(f"Error resolviendo path de workflow: {e}")
+        raise ValueError(f"Ruta de workflow inválida: {e}") from e
 
-    # Validar existencia
-    if not workflow_file.exists():
-        raise ValueError(f"Workflow no existe: {workflow_file}")
+    # Validar que esté en .github/workflows/
+    if ".github/workflows" not in str(workflow_file):
+        logger.error(f"Workflow fuera de .github/workflows/: {workflow_file.name}")
+        raise ValueError("El workflow debe estar en un directorio .github/workflows/ válido")
+
+    # Validar extensión
+    if workflow_file.suffix not in [".yml", ".yaml"]:
+        raise ValueError("El workflow debe ser un archivo YAML (.yml o .yaml)")
+
+    # Validar tamaño del archivo (máximo 1MB)
+    MAX_WORKFLOW_SIZE = 1024 * 1024  # 1MB
+    tamaño = workflow_file.stat().st_size
+    if tamaño > MAX_WORKFLOW_SIZE:
+        raise ValueError(
+            f"Archivo workflow demasiado grande: {tamaño} bytes "
+            f"(máximo: {MAX_WORKFLOW_SIZE} bytes)"
+        )
+    if tamaño == 0:
+        raise ValueError("Archivo workflow vacío")
+
+    logger.info(
+        f"Ejecutando workflow con act: {workflow_file.name}, "
+        f"evento={evento}, timeout={timeout}s"
+    )
 
     # Ejecutar act
     try:
@@ -77,11 +109,25 @@ def ejecutar_workflow_con_act(
         )
 
         if resultado.returncode == 0:
+            logger.info(f"Workflow exitoso: {workflow_file.name}")
             return (True, resultado.stdout)
+
+        logger.warning(
+            f"Workflow falló: {workflow_file.name}, " f"returncode={resultado.returncode}"
+        )
         return (False, resultado.stderr)
 
     except FileNotFoundError as err:
+        logger.error("act no está instalado en el sistema")
         raise FileNotFoundError("act no está instalado") from err
+
+    except subprocess.TimeoutExpired:
+        logger.error(f"Workflow timeout después de {timeout}s: {workflow_file.name}")
+        return (
+            False,
+            f"⏱️ Timeout: El workflow excedió el límite de {timeout} segundos. "
+            f"Considera optimizar el workflow o aumentar el timeout.",
+        )
 
 
 def ejecutar_workflow_fallback(repo_path: Path) -> tuple[bool, str]:
@@ -100,7 +146,26 @@ def ejecutar_workflow_fallback(repo_path: Path) -> tuple[bool, str]:
         Tupla (exito, output):
         - exito: True si todas las validaciones pasan
         - output: Resumen de resultados
+
+    Raises:
+        ValueError: Si repo_path no es válido
     """
+    # Validar que repo_path sea Path
+    if not isinstance(repo_path, Path):
+        raise TypeError(f"repo_path debe ser Path, recibido: {type(repo_path)}")
+
+    # Resolver y validar existencia
+    try:
+        repo_path = repo_path.resolve(strict=True)
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Ruta de repositorio inválida: {e}") from e
+
+    # Validar que sea repositorio git
+    if not (repo_path / ".git").is_dir():
+        raise ValueError("El directorio no es un repositorio Git válido")
+
+    logger.info(f"Ejecutando workflow fallback en: {repo_path.name}")
+
     resultados = []
     todo_ok = True
 
