@@ -2,7 +2,30 @@
 
 Esta guía explica cómo publicar CI Guardian en PyPI (Python Package Index).
 
-## Prerrequisitos
+## 🚀 Método Recomendado: GitHub Actions con Trusted Publisher
+
+**RECOMENDADO**: Usa GitHub Actions con OpenID Connect (Trusted Publisher). Es más seguro y no requiere manejar API tokens manualmente.
+
+📖 **Ver guía completa**: [.github/PYPI_SETUP.md](.github/PYPI_SETUP.md)
+
+### Ventajas de Trusted Publisher
+- ✅ No hay tokens que puedan filtrarse
+- ✅ Publicación automática desde GitHub Actions
+- ✅ Más seguro que API tokens
+- ✅ Permisos granulares por repositorio
+
+### Pasos Rápidos
+1. Configurar Trusted Publisher en PyPI: https://pypi.org/manage/account/publishing/
+2. Crear environments en GitHub (`testpypi`, `pypi`)
+3. Ejecutar workflow desde Actions o crear un release
+
+---
+
+## 📝 Método Alternativo: Publicación Manual
+
+Si prefieres publicar manualmente con API tokens:
+
+### Prerrequisitos
 
 1. **Cuenta en TestPyPI** (para pruebas):
    - Registrarse en: https://test.pypi.org/account/register/
