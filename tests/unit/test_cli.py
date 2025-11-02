@@ -97,25 +97,41 @@ class TestCLIInstall:
         Escenario:
         1. Usuario ejecuta 'ci-guardian install' en un repo git
         2. CLI detecta que es repo válido
-        3. Instala pre-commit, pre-push, post-commit
+        3. Instala pre-commit, commit-msg, post-commit
         4. Muestra mensaje de éxito
         5. Exit code = 0
+
+        REFACTORED (LIB-19): Usa implementación real de instalar_hook
+        en lugar de mock, validando que hooks existen en filesystem.
         """
-        with (
-            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
-            patch("ci_guardian.cli.instalar_hook") as mock_instalar,
-        ):
-            # Act
+        # Arrange
+        hooks_esperados = ["pre-commit", "commit-msg", "post-commit"]
+
+        # Act
+        with patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock):
             resultado = cli_runner.invoke(install)
 
-            # Assert
-            assert resultado.exit_code == 0, f"Debe salir con código 0. Output: {resultado.output}"
+        # Assert - Exit code y mensaje
+        assert resultado.exit_code == 0, f"Debe salir con código 0. Output: {resultado.output}"
+        assert (
+            "instalados exitosamente" in resultado.output.lower()
+        ), "Debe mostrar mensaje de éxito"
+
+        # Assert - Validar que hooks existen en filesystem
+        hooks_dir = repo_git_mock / ".git" / "hooks"
+        for hook_name in hooks_esperados:
+            hook_path = hooks_dir / hook_name
+            assert hook_path.exists(), f"Hook {hook_name} debe existir en {hook_path}"
+
+            # Validar contenido del hook
+            contenido = hook_path.read_text()
+            assert "CI-GUARDIAN-HOOK" in contenido, "Debe contener marca CI-GUARDIAN-HOOK"
+
+            # Validar que ejecuta el módulo correcto
+            modulo_nombre = hook_name.replace("-", "_")
             assert (
-                "instalados exitosamente" in resultado.output.lower()
-            ), "Debe mostrar mensaje de éxito"
-            assert (
-                mock_instalar.call_count == 3
-            ), "Debe instalar 3 hooks (pre-commit, commit-msg, post-commit)"
+                f"ci_guardian.hooks.{modulo_nombre}" in contenido
+            ), f"Debe ejecutar módulo ci_guardian.hooks.{modulo_nombre}"
 
     def test_debe_fallar_cuando_no_esta_en_repo_git(
         self, cli_runner: CliRunner, tmp_path: Path
@@ -157,20 +173,26 @@ class TestCLIInstall:
         3. CLI detecta hooks existentes
         4. Muestra error y NO sobrescribe
         5. Exit code != 0
-        """
-        with (
-            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
-            patch("ci_guardian.cli.instalar_hook") as mock_instalar,
-        ):
-            # Simular que el hook ya existe
-            mock_instalar.side_effect = FileExistsError("El hook pre-commit ya existe")
 
-            # Act
+        REFACTORED (LIB-19): Crea hooks reales en filesystem,
+        usa implementación real que detecta hooks existentes.
+        """
+        # Arrange: crear hooks existentes en filesystem
+        hooks_dir = repo_git_mock / ".git" / "hooks"
+        hook_existente = hooks_dir / "pre-commit"
+        hook_existente.write_text("#!/bin/bash\n# CI-GUARDIAN-HOOK\necho 'existing hook'")
+
+        # Act
+        with patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock):
             resultado = cli_runner.invoke(install)
 
-            # Assert
-            assert resultado.exit_code != 0, "Debe fallar cuando hooks ya existen"
-            assert "ya existe" in resultado.output.lower(), "Debe mostrar mensaje de error"
+        # Assert
+        assert resultado.exit_code != 0, "Debe fallar cuando hooks ya existen"
+        assert "ya existe" in resultado.output.lower(), "Debe mostrar mensaje de error"
+
+        # Assert: hook existente NO debe ser sobrescrito
+        contenido_final = hook_existente.read_text()
+        assert "existing hook" in contenido_final, "No debe sobrescribir hook existente"
 
     def test_debe_sobrescribir_hooks_cuando_se_usa_flag_force(
         self,
@@ -187,27 +209,42 @@ class TestCLIInstall:
         4. Reinstala todos los hooks
         5. Muestra mensaje de éxito con advertencia
         6. Exit code = 0
-        """
-        # Crear hooks existentes
-        (repo_git_mock / ".git" / "hooks" / "pre-commit").write_text(
-            "#!/bin/bash\n# CI-GUARDIAN-HOOK\necho 'old hook'"
-        )
 
-        with (
-            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
-            patch("ci_guardian.cli.desinstalar_hook") as mock_desinstalar,
-            patch("ci_guardian.cli.instalar_hook") as mock_instalar,
-        ):
-            # Act
+        REFACTORED (LIB-19): Crea hooks reales, usa implementación real
+        de desinstalar_hook e instalar_hook, valida sobrescritura en filesystem.
+        """
+        # Arrange: crear hooks existentes con contenido antiguo
+        hooks_dir = repo_git_mock / ".git" / "hooks"
+        hooks_esperados = ["pre-commit", "commit-msg", "post-commit"]
+
+        for hook_name in hooks_esperados:
+            hook_path = hooks_dir / hook_name
+            hook_path.write_text("#!/bin/bash\n# CI-GUARDIAN-HOOK\necho 'old hook'")
+
+        # Act
+        with patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock):
             resultado = cli_runner.invoke(install, ["--force"])
 
-            # Assert
-            assert resultado.exit_code == 0, "Debe salir con código 0 con --force"
-            assert mock_desinstalar.called, "Debe llamar a desinstalar_hook"
-            assert mock_instalar.call_count == 3, "Debe reinstalar los 3 hooks"
+        # Assert - Exit code y mensaje
+        assert (
+            resultado.exit_code == 0
+        ), f"Debe salir con código 0 con --force. Output: {resultado.output}"
+        assert "forzada" in resultado.output.lower(), "Debe indicar que fue una instalación forzada"
+
+        # Assert - Validar que hooks fueron sobrescritos con nuevo contenido
+        for hook_name in hooks_esperados:
+            hook_path = hooks_dir / hook_name
+            assert hook_path.exists(), f"Hook {hook_name} debe existir"
+
+            contenido = hook_path.read_text()
+            assert "old hook" not in contenido, "Contenido antiguo debe ser eliminado"
+            assert "CI-GUARDIAN-HOOK" in contenido, "Debe contener marca CI-GUARDIAN-HOOK"
+
+            # Validar que ejecuta el módulo correcto
+            modulo_nombre = hook_name.replace("-", "_")
             assert (
-                "forzada" in resultado.output.lower() or "sobrescrito" in resultado.output.lower()
-            ), "Debe indicar que fue una instalación forzada"
+                f"ci_guardian.hooks.{modulo_nombre}" in contenido
+            ), f"Debe ejecutar módulo ci_guardian.hooks.{modulo_nombre}"
 
     def test_debe_validar_path_traversal_en_repo_path(self, cli_runner: CliRunner) -> None:
         """
@@ -242,18 +279,29 @@ class TestCLIInstall:
         1. Usuario ejecuta 'ci-guardian install' en Linux
         2. CLI instala hooks
         3. Hooks tienen permisos de ejecución (755)
+
+        REFACTORED (LIB-19): Usa implementación real y valida
+        permisos 755 en filesystem.
         """
-        with (
-            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
-            patch("ci_guardian.cli.instalar_hook") as mock_instalar,
-        ):
-            # Act
+        # Arrange
+        hooks_esperados = ["pre-commit", "commit-msg", "post-commit"]
+
+        # Act
+        with patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock):
             resultado = cli_runner.invoke(install)
 
-            # Assert
-            assert resultado.exit_code == 0
-            # Verificar que se llamó a instalar_hook (que internamente aplica chmod 0o755)
-            assert mock_instalar.called
+        # Assert - Exit code
+        assert resultado.exit_code == 0, f"Debe salir con código 0. Output: {resultado.output}"
+
+        # Assert - Validar permisos 755 en cada hook
+        hooks_dir = repo_git_mock / ".git" / "hooks"
+        for hook_name in hooks_esperados:
+            hook_path = hooks_dir / hook_name
+            assert hook_path.exists(), f"Hook {hook_name} debe existir"
+
+            # Verificar permisos 755 (rwxr-xr-x)
+            permisos = oct(hook_path.stat().st_mode)[-3:]
+            assert permisos == "755", f"Hook {hook_name} debe tener permisos 755, tiene {permisos}"
 
     @pytest.mark.skipif(platform.system() != "Windows", reason="Test específico de Windows")
     def test_debe_instalar_hooks_bat_en_windows(
@@ -268,17 +316,36 @@ class TestCLIInstall:
         1. Usuario ejecuta 'ci-guardian install' en Windows
         2. CLI detecta sistema Windows
         3. Instala hooks con extensión .bat
+
+        REFACTORED (LIB-19): Usa implementación real y valida
+        que archivos .bat existen en filesystem con contenido @echo off.
         """
-        with (
-            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
-            patch("ci_guardian.cli.instalar_hook") as mock_instalar,
-        ):
-            # Act
+        # Arrange
+        hooks_esperados = ["pre-commit", "commit-msg", "post-commit"]
+
+        # Act
+        with patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock):
             resultado = cli_runner.invoke(install)
 
-            # Assert
-            assert resultado.exit_code == 0
-            assert mock_instalar.called
+        # Assert - Exit code
+        assert resultado.exit_code == 0, f"Debe salir con código 0. Output: {resultado.output}"
+
+        # Assert - Validar que hooks .bat existen
+        hooks_dir = repo_git_mock / ".git" / "hooks"
+        for hook_name in hooks_esperados:
+            hook_path = hooks_dir / f"{hook_name}.bat"
+            assert hook_path.exists(), f"Hook {hook_name}.bat debe existir en Windows"
+
+            # Validar contenido de batch script
+            contenido = hook_path.read_text()
+            assert "@echo off" in contenido, "Debe ser un batch script con @echo off"
+            assert "CI-GUARDIAN-HOOK" in contenido, "Debe contener marca CI-GUARDIAN-HOOK"
+
+            # Validar que ejecuta el módulo correcto
+            modulo_nombre = hook_name.replace("-", "_")
+            assert (
+                f"ci_guardian.hooks.{modulo_nombre}" in contenido
+            ), f"Debe ejecutar módulo ci_guardian.hooks.{modulo_nombre}"
 
 
 # ============================================================================

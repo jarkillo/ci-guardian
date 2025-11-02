@@ -147,6 +147,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Token solo debe generarse después de todas las validaciones
   - Previene ataque: commit abort → token orphan → reuse with --no-verify
 
+### Fixed
+- 🧪 **Refactor CLI Tests to Minimize Excessive Mocking (LIB-19)** - Post-Mortem Prevention Measure
+  - Eliminated excessive mocking of `instalar_hook` function in 5 tests
+  - Tests now use REAL hook installation and validate actual filesystem state
+  - Validates hooks exist on filesystem with correct content
+  - Validates hooks contain correct module imports (`ci_guardian.hooks.{modulo_nombre}`)
+  - Validates hook permissions (755 on Linux) and .bat extension on Windows
+  - Tests now would have caught the v0.1.0 bug (missing pre_push.py module)
+  - Only mocks external I/O (Path.cwd), not internal logic
+  - All 358 tests still pass, coverage maintained at 73%
+  - Refactored tests:
+    - `test_debe_instalar_hooks_exitosamente_cuando_esta_en_repo_git`
+    - `test_debe_rechazar_instalacion_cuando_hooks_ya_existen`
+    - `test_debe_sobrescribir_hooks_cuando_se_usa_flag_force`
+    - `test_debe_instalar_hooks_con_permisos_755_en_linux`
+    - `test_debe_instalar_hooks_bat_en_windows`
+
 ### Planned
 - LIB-2: Virtual Environment Manager - Detección/gestión de entornos virtuales (COMPLETED, needs integration)
 - LIB-5: Security Audit - Integración con Bandit y Safety
