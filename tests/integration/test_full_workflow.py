@@ -937,3 +937,102 @@ def test_workflow_proteccion_contra_bypass_con_no_verify(repo_git_real: Path) ->
         text=True,
     )
     assert "Normal commit" in resultado_log2.stdout, "Commit normal debe persistir"
+
+
+# =============================================================================
+# TESTS: Workflow git push (LIB-20)
+# =============================================================================
+
+
+@pytest.mark.integration
+def test_debe_ejecutar_git_push_exitosamente_con_hooks_instalados(repo_git_real: Path) -> None:
+    """
+    Workflow end-to-end completo: install → commit → push.
+
+    Este test previene el bug de v0.1.0 donde pre-push estaba en lista
+    pero módulo pre_push.py no existía, causando ModuleNotFoundError al
+    hacer git push.
+
+    Valida que todos los hooks (incluyendo pre-push si existe) funcionan
+    sin errores durante el flujo completo de desarrollo.
+
+    Test para LIB-20: Post-Mortem Prevention Measure.
+    """
+    # 1. Instalar hooks
+    resultado_install = subprocess.run(
+        ["ci-guardian", "install", "--repo", str(repo_git_real)],
+        capture_output=True,
+        text=True,
+    )
+    assert resultado_install.returncode == 0, f"Install falló: {resultado_install.stderr}"
+    assert "hooks instalados exitosamente" in resultado_install.stdout
+
+    # 2. Crear archivo Python válido
+    test_file = repo_git_real / "test_module.py"
+    test_file.write_text(
+        '''"""Test module."""
+
+
+def test_function() -> bool:
+    """Test function."""
+    return True
+''',
+        encoding="utf-8",
+    )
+
+    # 3. Commit (trigger pre-commit, commit-msg, post-commit)
+    subprocess.run(
+        ["git", "add", "test_module.py"],
+        cwd=repo_git_real,
+        check=True,
+        capture_output=True,
+    )
+
+    commit_result = subprocess.run(
+        ["git", "commit", "-m", "test: add test module"],
+        cwd=repo_git_real,
+        capture_output=True,
+        text=True,
+    )
+    assert commit_result.returncode == 0, f"Commit falló: {commit_result.stderr}"
+
+    # 4. Crear remote local para testing (no requiere GitHub real)
+    remote_dir = repo_git_real.parent / "remote.git"
+    subprocess.run(
+        ["git", "init", "--bare", str(remote_dir)],
+        capture_output=True,
+        check=True,
+    )
+
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(remote_dir)],
+        cwd=repo_git_real,
+        check=True,
+        capture_output=True,
+    )
+
+    # 5. Push (trigger pre-push hook si existe)
+    push_result = subprocess.run(
+        ["git", "push", "origin", "HEAD"],
+        cwd=repo_git_real,
+        capture_output=True,
+        text=True,
+    )
+
+    # ⚠️ CRÍTICO: Este test habría FALLADO en v0.1.0 con ModuleNotFoundError
+    # porque pre-push estaba en HOOKS_ESPERADOS pero pre_push.py no existía
+    assert push_result.returncode == 0, (
+        f"Push falló.\n"
+        f"Si el error es ModuleNotFoundError para pre_push, significa que el hook\n"
+        f"está en HOOKS_ESPERADOS pero el módulo no existe.\n"
+        f"Este fue exactamente el bug de v0.1.0.\n\n"
+        f"Stderr: {push_result.stderr}\n"
+        f"Stdout: {push_result.stdout}"
+    )
+
+    # Verificar que push fue exitoso
+    assert (
+        "HEAD -> " in push_result.stderr
+        or "new branch" in push_result.stderr
+        or "HEAD" in push_result.stderr
+    ), "Push debe mostrar mensaje de éxito de Git"
