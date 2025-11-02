@@ -119,12 +119,13 @@ def archivo_python_con_vulnerabilidad(repo_git_real: Path) -> Path:
     archivo = repo_git_real / "vulnerable.py"
     archivo.write_text(
         '''"""Código vulnerable."""
-import subprocess
+
+import os
 
 
 def ejecutar_comando(cmd: str) -> None:
     """Función vulnerable a command injection."""
-    subprocess.call(cmd, shell=True)  # Bandit: B602
+    os.system(cmd)  # Bandit: B605 HIGH
 ''',
         encoding="utf-8",
     )
@@ -760,7 +761,6 @@ def test_workflow_completo_desarrollo_normal(repo_git_real: Path) -> None:
 
 def main() -> int:
     """Función principal."""
-    print("Hello, CI Guardian!")
     return 0
 
 
