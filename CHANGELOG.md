@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Runners
+- 🎬 **GitHub Actions Local Executor (LIB-7)** - Ejecución local de workflows de GitHub Actions
+  - Integración con act (https://github.com/nektos/act) para ejecutar workflows en Docker
+  - Modo fallback con pytest, ruff, black cuando act no está disponible
+  - Auto-detección de workflow files (ci.yml, test.yml)
+  - Auto-detección de modo (act vs fallback)
+  - Eventos soportados: push, pull_request, workflow_dispatch, schedule
+  - Timeout configurable (default: 300s para act, 60s para fallback)
+  - 34 tests comprehensivos, 78% de cobertura
+  - Security features:
+    - Path traversal prevention (Path.resolve strict)
+    - File size validation (max 1MB)
+    - Timeout handling (prevents DoS)
+    - Git repository validation
+    - Comprehensive security logging
+    - Whitelist de eventos permitidos
+  - Cross-platform support (Linux, macOS, Windows)
+  - Documentación completa en docstrings
+  - Manejo robusto de errores con exception chaining
+
 #### Core Features
 - 🔒 **Anti --no-verify Validator (LIB-3)** - Sistema de tokens para prevenir bypass de hooks
   - Token criptográficamente seguro (256 bits usando secrets.token_hex)
@@ -84,9 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 - LIB-2: Virtual Environment Manager - Detección/gestión de entornos virtuales (COMPLETED, needs integration)
-- LIB-8: CLI Interface - Comandos install/uninstall/status/check
 - LIB-5: Security Audit - Integración con Bandit y Safety
-- LIB-7: GitHub Actions Runner - Ejecución local de workflows
 - LIB-9: Integration Tests - Tests de flujo completo
 
 ## [0.1.0] - 2025-10-30

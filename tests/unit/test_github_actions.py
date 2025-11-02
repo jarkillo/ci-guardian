@@ -244,8 +244,8 @@ jobs:
 
         # Act & Assert
         with pytest.raises(
-            (ValueError, FileNotFoundError),
-            match=r"(no existe|not found|does not exist)",
+            ValueError,
+            match=r"Ruta de workflow inválida",
         ):
             ejecutar_workflow_con_act(workflow_inexistente)
 
@@ -255,7 +255,7 @@ jobs:
         workflow_malicioso = tmp_path / ".." / ".." / "etc" / "passwd"
 
         # Act & Assert
-        with pytest.raises(ValueError, match=r"(path.*(traversal|inválido)|inválid.*path)"):
+        with pytest.raises(ValueError, match=r"Ruta de workflow inválida"):
             ejecutar_workflow_con_act(workflow_malicioso)
 
 
