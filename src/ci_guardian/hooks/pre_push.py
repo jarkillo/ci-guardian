@@ -105,7 +105,7 @@ def _ejecutar_github_actions(repo_path: Path) -> tuple[bool, str]:
     try:
         from ci_guardian.runners.github_actions import ejecutar_workflow
 
-        exito, mensaje = ejecutar_workflow(repo_path)
+        exito, mensaje = ejecutar_workflow(repo_path=repo_path)
         return exito, mensaje
     except Exception as e:
         return False, f"✗ Error ejecutando GitHub Actions: {e}"
