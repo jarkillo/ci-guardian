@@ -44,6 +44,8 @@ ci-guardian install
 
 ¡Listo! Ahora todos tus commits pasarán por validación automática.
 
+📖 **¿Primera vez usando CI Guardian?** Lee la [Guía de Inicio Rápido](QUICKSTART.md) con ejemplos paso a paso.
+
 ## ✅ Estado del Desarrollo
 
 **CI Guardian v0.1.0 está COMPLETO y listo para producción!** 🎉
