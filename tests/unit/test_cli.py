@@ -414,7 +414,7 @@ class TestCLIUninstall:
 
             # Assert
             assert resultado.exit_code == 0, "Debe salir con código 0"
-            assert mock_desinstalar.call_count == 3, "Debe desinstalar 3 hooks"
+            assert mock_desinstalar.call_count == 4, "Debe desinstalar 4 hooks"
             assert "desinstalados" in resultado.output.lower(), "Debe mostrar mensaje de éxito"
 
     def test_debe_omitir_confirmacion_con_flag_yes(
@@ -442,7 +442,7 @@ class TestCLIUninstall:
 
             # Assert
             assert resultado.exit_code == 0, "Debe salir con código 0"
-            assert mock_desinstalar.call_count == 3, "Debe desinstalar los 3 hooks"
+            assert mock_desinstalar.call_count == 4, "Debe desinstalar los 4 hooks"
             # No debe mostrar prompt de confirmación
             assert "¿" not in resultado.output, "No debe mostrar pregunta de confirmación"
 
@@ -1370,18 +1370,21 @@ def test_validar_hook_existe_debe_fallar_con_hook_inexistente() -> None:
     Test para LIB-21: Validación runtime de módulos antes de instalar.
     Este test simula el bug de v0.1.0 donde pre-push estaba en lista pero
     módulo pre_push.py no existía.
+
+    Nota: Ahora usamos pre-rebase como ejemplo de hook sin módulo, ya que
+    pre-push fue implementado en v0.2.0 (LIB-14).
     """
     from ci_guardian.cli import _validar_hook_existe
 
     # Arrange: hook que no tiene módulo implementado
-    hook_inexistente = "pre-push"
+    hook_inexistente = "pre-rebase"
 
     # Act & Assert
     with pytest.raises(ValueError) as exc_info:
         _validar_hook_existe(hook_inexistente)
 
     error_msg = str(exc_info.value)
-    assert "No se puede instalar el hook 'pre-push'" in error_msg
-    assert "ci_guardian.hooks.pre_push" in error_msg
+    assert "No se puede instalar el hook 'pre-rebase'" in error_msg
+    assert "ci_guardian.hooks.pre_rebase" in error_msg
     assert "no existe" in error_msg
     assert "github.com/jarkillo/ci-guardian/issues" in error_msg

@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 🎯 **Pre-Push Hook Implementation (LIB-14)** - 4th Hook Complete
+  - Implemented `src/ci_guardian/hooks/pre_push.py` module (originally documented in v0.1.0 but missing)
+  - Executes pytest before allowing push to repository
+  - Executes GitHub Actions locally if configured (via LIB-7 runner)
+  - Respects `.ci-guardian.yaml` configuration
+  - Skip functionality with `CI_GUARDIAN_SKIP_TESTS=1` environment variable
+  - Cross-platform support (Linux/Windows)
+  - Security: Uses subprocess safely (shell=False), handles timeouts
+  - 12 new unit tests, 81% coverage on new module
+  - Updated `HOOKS_ESPERADOS` in cli.py to include pre-push
+  - Updated `HOOKS_PERMITIDOS` whitelist in installer.py
+  - Now CI Guardian installs 4 hooks instead of 3 (pre-commit, commit-msg, post-commit, **pre-push**)
+  - **Fixes v0.1.0 critical bug** where pre-push was documented but module didn't exist
+  - Total tests: 373 passed (was 358), coverage: 75% (was 73%)
+
 - 🛡️ **Runtime Module Validation (LIB-21)** - Fail-Fast Prevention
   - CLI validates hook modules exist BEFORE installing them
   - New `_validar_hook_existe()` function uses `import_module()`

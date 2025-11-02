@@ -64,12 +64,12 @@ ci-guardian install
 | 🟢 **GitHub Actions Runner** | ✅ Completo | 31 tests | 94% | Ejecución local de workflows |
 | 🟢 **Integration Tests** | ✅ Completo | 17 tests | 100% | Tests end-to-end con Git real |
 
-**Total: 358 tests passed | Coverage: 73%**
+**Total: 373 tests passed | Coverage: 75%**
 
 ### ✨ Todas las Funcionalidades Implementadas
 
 - ✅ **5 comandos CLI**: install, uninstall, status, check, configure
-- ✅ **3 hooks Git**: pre-commit, commit-msg, post-commit
+- ✅ **4 hooks Git**: pre-commit, commit-msg, post-commit, pre-push
 - ✅ **4 validadores**: Code quality, Security, Authorship, Anti --no-verify
 - ✅ **1 runner**: GitHub Actions local (act con fallback)
 - ✅ **Soporte multiplataforma**: Linux, macOS, Windows
