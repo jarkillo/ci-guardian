@@ -25,7 +25,7 @@ from ci_guardian.core.installer import (
 from ci_guardian.validators.code_quality import ejecutar_black, ejecutar_ruff
 
 # Hooks que debe gestionar CI Guardian
-HOOKS_ESPERADOS = ["pre-commit", "pre-push", "post-commit"]
+HOOKS_ESPERADOS = ["pre-commit", "commit-msg", "post-commit", "pre-push"]
 
 # Directorios a excluir al buscar archivos Python
 DIRECTORIOS_EXCLUIDOS = {"venv", ".venv", "env", ".env", ".git", "__pycache__", "build", "dist"}
@@ -111,7 +111,7 @@ if exist "venv\\Scripts\\activate.bat" (
 )
 
 REM Ejecutar hook usando el Python que instaló CI Guardian
-"{python_ejecutable}" -m ci_guardian.hooks.{modulo_nombre}
+"{python_ejecutable}" -m ci_guardian.hooks.{modulo_nombre} %*
 exit /b %ERRORLEVEL%
 """
 
@@ -132,7 +132,7 @@ elif [ -d ".env/bin" ]; then
 fi
 
 # Ejecutar hook usando el Python que instaló CI Guardian
-"{python_ejecutable}" -m ci_guardian.hooks.{modulo_nombre}
+"{python_ejecutable}" -m ci_guardian.hooks.{modulo_nombre} "$@"
 exit $?
 """
 
