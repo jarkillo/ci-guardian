@@ -145,15 +145,14 @@ hooks:
         )
 
         # Act
-        from ci_guardian.hooks.pre_push import cargar_configuracion
+        from ci_guardian.core.config import cargar_configuracion
 
         config = cargar_configuracion(tmp_path)
 
         # Assert
         assert config is not None, "Debe cargar configuración"
-        assert "hooks" in config
-        assert "pre-push" in config["hooks"]
-        assert config["hooks"]["pre-push"]["enabled"] is True
+        assert "pre-push" in config.hooks
+        assert config.hooks["pre-push"].enabled is True
 
     def test_debe_usar_configuracion_por_defecto_si_no_existe_yaml(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -164,14 +163,13 @@ hooks:
         # No crear archivo de configuración
 
         # Act
-        from ci_guardian.hooks.pre_push import cargar_configuracion
+        from ci_guardian.core.config import cargar_configuracion
 
         config = cargar_configuracion(tmp_path)
 
         # Assert
         assert config is not None, "Debe retornar configuración por defecto"
-        assert "hooks" in config
-        assert "pre-push" in config["hooks"]
+        assert "pre-push" in config.hooks
 
 
 class TestPrePushSecurity:

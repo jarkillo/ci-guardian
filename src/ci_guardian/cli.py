@@ -13,7 +13,6 @@ from pathlib import Path
 
 import click
 import colorama
-import yaml
 
 from ci_guardian import __version__
 from ci_guardian.core.installer import (
@@ -448,42 +447,13 @@ def configure(repo: str) -> None:
             click.echo("Operación cancelado.")
             sys.exit(0)
 
-        # Generar configuración por defecto
-        config = {
-            "version": __version__,
-            "hooks": {
-                "pre-commit": {
-                    "enabled": True,
-                    "validadores": ["ruff", "black", "bandit"],
-                },
-                "pre-push": {
-                    "enabled": True,
-                    "validadores": ["tests", "github-actions"],
-                },
-                "post-commit": {
-                    "enabled": True,
-                    "validadores": ["authorship", "no-verify-blocker"],
-                },
-            },
-            "validadores": {
-                "ruff": {
-                    "enabled": True,
-                    "auto-fix": False,
-                },
-                "black": {
-                    "enabled": True,
-                    "line-length": 100,
-                },
-                "bandit": {
-                    "enabled": True,
-                    "severity": "medium",
-                },
-            },
-        }
+        # Generar configuración por defecto usando módulo centralizado
+        from ci_guardian.core.config import CIGuardianConfig
 
-        # Escribir configuración en YAML
-        with open(config_path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(config, f, default_flow_style=False, sort_keys=False)
+        config = CIGuardianConfig.default()
+
+        # Guardar a YAML
+        config.to_yaml(config_path)
 
         click.echo(f"✓ Configuración creada en {config_path}")
         sys.exit(0)

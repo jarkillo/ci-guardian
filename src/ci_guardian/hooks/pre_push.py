@@ -15,49 +15,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import yaml
-
-
-def cargar_configuracion(repo_path: Path) -> dict:
-    """
-    Carga configuración desde .ci-guardian.yaml o retorna defaults.
-
-    Args:
-        repo_path: Ruta al repositorio Git
-
-    Returns:
-        Diccionario con configuración del hook pre-push
-    """
-    config_path = repo_path / ".ci-guardian.yaml"
-
-    if config_path.exists():
-        try:
-            with open(config_path, encoding="utf-8") as f:
-                config = yaml.safe_load(f)
-                return config if config else _config_por_defecto()
-        except Exception:
-            # Si falla la lectura, usar defaults
-            return _config_por_defecto()
-    else:
-        return _config_por_defecto()
-
-
-def _config_por_defecto() -> dict:
-    """
-    Retorna configuración por defecto para pre-push.
-
-    Returns:
-        Diccionario con configuración default
-    """
-    return {
-        "hooks": {
-            "pre-push": {
-                "enabled": True,
-                "validadores": ["tests"],
-            }
-        }
-    }
-
 
 def _ejecutar_pytest(repo_path: Path) -> tuple[bool, str]:
     """
@@ -134,18 +91,21 @@ def main() -> int:
     # Obtener directorio del repositorio
     repo_path = Path.cwd()
 
-    # Cargar configuración
+    # Cargar configuración desde módulo centralizado
+    from ci_guardian.core.config import cargar_configuracion
+
     config = cargar_configuracion(repo_path)
 
     # Verificar si pre-push está habilitado
-    if not config.get("hooks", {}).get("pre-push", {}).get("enabled", True):
+    pre_push_config = config.hooks.get("pre-push")
+    if not pre_push_config or not pre_push_config.enabled:
         print("ℹ️  Hook pre-push deshabilitado en configuración")
         return 0
 
     print("🔍 Ejecutando validaciones pre-push...")
 
     # Obtener validadores configurados
-    validadores = config.get("hooks", {}).get("pre-push", {}).get("validadores", ["tests"])
+    validadores = pre_push_config.validadores if pre_push_config.validadores else ["tests"]
 
     todas_exitosas = True
 
