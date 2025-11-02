@@ -75,27 +75,65 @@ def _obtener_contenido_hook(hook_name: str) -> str:
     """
     Genera el contenido de un hook de CI Guardian.
 
+    Crea un script que:
+    1. Intenta activar el venv local del proyecto si existe
+    2. Si no hay venv local, usa el Python que ejecutó ci-guardian install
+    3. Ejecuta el hook Python como módulo
+
     Args:
         hook_name: Nombre del hook (pre-commit, pre-push, post-commit)
 
     Returns:
         Contenido del hook con shebang y marca CI-GUARDIAN-HOOK
     """
+    # Convertir nombre de hook de kebab-case a snake_case para módulo Python
+    # pre-commit → pre_commit
+    modulo_nombre = hook_name.replace("-", "_")
+
+    # Obtener ruta al Python actual (el que tiene ci_guardian instalado)
+    python_ejecutable = sys.executable
+
     # En Windows, usar batch script
     if platform.system() == "Windows":
         return f"""@echo off
 REM CI-GUARDIAN-HOOK
 REM {hook_name} hook instalado por CI Guardian v{__version__}
-echo CI Guardian {hook_name} ejecutándose...
-exit /b 0
+
+REM Activar venv local si existe
+if exist "venv\\Scripts\\activate.bat" (
+    call venv\\Scripts\\activate.bat
+) else if exist ".venv\\Scripts\\activate.bat" (
+    call .venv\\Scripts\\activate.bat
+) else if exist "env\\Scripts\\activate.bat" (
+    call env\\Scripts\\activate.bat
+) else if exist ".env\\Scripts\\activate.bat" (
+    call .env\\Scripts\\activate.bat
+)
+
+REM Ejecutar hook usando el Python que instaló CI Guardian
+"{python_ejecutable}" -m ci_guardian.hooks.{modulo_nombre}
+exit /b %ERRORLEVEL%
 """
 
     # En Linux/macOS, usar bash script
     return f"""#!/bin/bash
 # CI-GUARDIAN-HOOK
 # {hook_name} hook instalado por CI Guardian v{__version__}
-echo "CI Guardian {hook_name} ejecutándose..."
-exit 0
+
+# Activar venv local si existe
+if [ -d "venv/bin" ]; then
+    source venv/bin/activate
+elif [ -d ".venv/bin" ]; then
+    source .venv/bin/activate
+elif [ -d "env/bin" ]; then
+    source env/bin/activate
+elif [ -d ".env/bin" ]; then
+    source .env/bin/activate
+fi
+
+# Ejecutar hook usando el Python que instaló CI Guardian
+"{python_ejecutable}" -m ci_guardian.hooks.{modulo_nombre}
+exit $?
 """
 
 

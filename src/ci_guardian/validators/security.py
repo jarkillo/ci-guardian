@@ -9,7 +9,7 @@ Este módulo ejecuta herramientas de auditoría de seguridad:
 import json
 import subprocess
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 
 def ejecutar_bandit(directorio: Path, formato: str = "json") -> tuple[bool, dict[str, Any]]:
@@ -75,8 +75,10 @@ def ejecutar_bandit(directorio: Path, formato: str = "json") -> tuple[bool, dict
             data = {"raw": resultado.stdout}
 
         # Verificar si hay vulnerabilidades HIGH
-        metrics = data.get("metrics", {}).get("_totals", {})
-        high_count = metrics.get("HIGH", 0)
+        # Nota: _totals a veces no se actualiza correctamente en Bandit,
+        # mejor contar directamente desde results
+        results = data.get("results", [])
+        high_count = sum(1 for r in results if r.get("issue_severity") == "HIGH")
 
         return (high_count == 0, data)
 
@@ -90,7 +92,7 @@ def ejecutar_bandit(directorio: Path, formato: str = "json") -> tuple[bool, dict
 
 
 def ejecutar_safety(
-    archivo_deps: Union[Path, None] = None,
+    archivo_deps: Path | None = None,
 ) -> tuple[bool, list[dict[str, Any]]]:
     """
     Ejecuta Safety para escanear vulnerabilidades en dependencias.
