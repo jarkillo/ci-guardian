@@ -253,3 +253,4 @@ docs/.buildinfo
 *.pyd
 .installed
 .installed.cfg
+.ci-guardian.yaml
