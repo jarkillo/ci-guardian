@@ -3,7 +3,9 @@
 > Git hooks automation for Claude Code projects - Enforces code quality, security, and prevents hook bypass
 
 <!-- Project Status & Version -->
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/jarkillo/ci-guardian/releases)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/jarkillo/ci-guardian/releases)
+[![PyPI version](https://img.shields.io/pypi/v/ci-guardian.svg)](https://pypi.org/project/ci-guardian/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/ci-guardian.svg)](https://pypi.org/project/ci-guardian/)
 [![Project Status](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)](https://github.com/jarkillo/ci-guardian)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -62,12 +64,12 @@ ci-guardian install
 | 🟢 **GitHub Actions Runner** | ✅ Completo | 31 tests | 94% | Ejecución local de workflows |
 | 🟢 **Integration Tests** | ✅ Completo | 17 tests | 100% | Tests end-to-end con Git real |
 
-**Total: 353 tests (344 passed, 9 skipped) | Coverage: 73%**
+**Total: 358 tests passed | Coverage: 73%**
 
 ### ✨ Todas las Funcionalidades Implementadas
 
 - ✅ **5 comandos CLI**: install, uninstall, status, check, configure
-- ✅ **3 hooks Git**: pre-commit, post-commit, pre-push
+- ✅ **3 hooks Git**: pre-commit, commit-msg, post-commit
 - ✅ **4 validadores**: Code quality, Security, Authorship, Anti --no-verify
 - ✅ **1 runner**: GitHub Actions local (act con fallback)
 - ✅ **Soporte multiplataforma**: Linux, macOS, Windows
