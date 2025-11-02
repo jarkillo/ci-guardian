@@ -1304,3 +1304,47 @@ class TestCLIIntegration:
                 assert resultado.exit_code != 0, f"Comando {comando} debe fallar"
                 # No debe mostrar traceback completo
                 assert "Traceback" not in resultado.output, f"Comando {comando} no debe hacer crash"
+
+
+# ============================================================================
+# TESTS VALIDACIÓN: Module Existence (LIB-16)
+# ============================================================================
+
+
+def test_debe_validar_que_todos_los_hooks_esperados_tienen_modulo_correspondiente() -> None:
+    """
+    Valida que cada hook en HOOKS_ESPERADOS tiene un módulo Python correspondiente.
+
+    Este test previene el bug crítico de v0.1.0 donde pre-push estaba en
+    HOOKS_ESPERADOS pero el módulo pre_push.py no existía, causando
+    ModuleNotFoundError en producción cuando usuarios hacían git push.
+
+    Si este test falla, significa que:
+    - Hay un hook en HOOKS_ESPERADOS que no está implementado, O
+    - El nombre del hook no coincide con el nombre del módulo
+
+    Previene: ModuleNotFoundError en runtime cuando se ejecuta el hook
+    """
+    from importlib import import_module
+
+    from ci_guardian.cli import HOOKS_ESPERADOS
+
+    for hook_name in HOOKS_ESPERADOS:
+        # Convertir nombre de hook (kebab-case) a nombre de módulo (snake_case)
+        # Ejemplo: "pre-commit" -> "pre_commit"
+        modulo_nombre = hook_name.replace("-", "_")
+        modulo_path = f"ci_guardian.hooks.{modulo_nombre}"
+
+        try:
+            import_module(modulo_path)
+        except ModuleNotFoundError as e:
+            pytest.fail(
+                f"❌ Hook '{hook_name}' en HOOKS_ESPERADOS no tiene módulo correspondiente.\n"
+                f"   Se esperaba: {modulo_path}\n"
+                f"   Error: {e}\n\n"
+                f"SOLUCIÓN:\n"
+                f"  1. Implementar src/ci_guardian/hooks/{modulo_nombre}.py, O\n"
+                f"  2. Remover '{hook_name}' de HOOKS_ESPERADOS en cli.py\n\n"
+                f"Este bug causó v0.1.0 cuando pre-push estaba en HOOKS_ESPERADOS\n"
+                f"pero pre_push.py no existía."
+            )
