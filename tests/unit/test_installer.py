@@ -260,7 +260,7 @@ class TestWhitelistHooks:
 
     @pytest.mark.parametrize(
         "hook_name",
-        ["pre-commit", "pre-push", "post-commit", "pre-rebase"],
+        ["pre-commit", "commit-msg", "post-commit", "pre-rebase"],
     )
     def test_debe_permitir_hooks_de_whitelist(self, repo_mock: Path, hook_name: str) -> None:
         """Debe permitir instalar hooks que están en la whitelist."""
@@ -404,7 +404,7 @@ class TestVerificacionEstado:
     def test_debe_detectar_hooks_instalados(self, repo_mock: Path) -> None:
         """Debe detectar qué hooks de CI Guardian están instalados."""
         # Arrange
-        hooks_instalados = ["pre-commit", "pre-push"]
+        hooks_instalados = ["pre-commit", "commit-msg"]
         for hook_name in hooks_instalados:
             hook_path = repo_mock / ".git" / "hooks" / hook_name
             hook_path.write_text(
@@ -419,7 +419,7 @@ class TestVerificacionEstado:
         # Assert
         assert len(resultado) == 2, f"Debe detectar 2 hooks, pero detectó {len(resultado)}"
         assert "pre-commit" in resultado, "Debe detectar pre-commit"
-        assert "pre-push" in resultado, "Debe detectar pre-push"
+        assert "commit-msg" in resultado, "Debe detectar pre-push"
 
     def test_debe_retornar_lista_vacia_si_no_hay_hooks(self, repo_mock: Path) -> None:
         """Debe retornar lista vacía si no hay hooks instalados."""
@@ -440,7 +440,7 @@ class TestVerificacionEstado:
         hook_ci.write_text("#!/usr/bin/env python3\n# CI-GUARDIAN-HOOK\nprint('test')")
 
         # Hook de otra herramienta
-        hook_otro = repo_mock / ".git" / "hooks" / "pre-push"
+        hook_otro = repo_mock / ".git" / "hooks" / "commit-msg"
         hook_otro.write_text("#!/bin/bash\n# Husky\nhusky install")
 
         from ci_guardian.core.installer import obtener_hooks_instalados
@@ -451,7 +451,7 @@ class TestVerificacionEstado:
         # Assert
         assert len(resultado) == 1, "Debe detectar solo hooks de CI Guardian"
         assert "pre-commit" in resultado, "Debe detectar pre-commit de CI Guardian"
-        assert "pre-push" not in resultado, "No debe detectar hooks de otras herramientas"
+        assert "commit-msg" not in resultado, "No debe detectar hooks de otras herramientas"
 
     def test_debe_verificar_si_hook_es_de_ci_guardian(self, repo_mock: Path) -> None:
         """Debe verificar si un hook específico es de CI Guardian."""
