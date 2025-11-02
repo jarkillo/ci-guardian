@@ -59,12 +59,12 @@ git config user.email "tu@email.com"
 ci-guardian install
 
 # Deberías ver:
-# ✓ 4 hooks instalados exitosamente
+# ✓ 3 hooks instalados exitosamente
 ```
 
 ### ¿Qué acaba de pasar?
 
-CI Guardian instaló 4 hooks de Git en tu proyecto:
+CI Guardian instaló 3 hooks de Git en tu proyecto:
 
 1. **pre-commit**: Se ejecuta ANTES de cada commit
    - Ejecuta Ruff (linter)
@@ -79,10 +79,6 @@ CI Guardian instaló 4 hooks de Git en tu proyecto:
 3. **post-commit**: Se ejecuta DESPUÉS de cada commit
    - Valida que el token de seguridad exista
    - Si usaste `--no-verify`, REVIERTE el commit
-
-4. **pre-push**: Se ejecuta ANTES de hacer push
-   - Ejecuta tests (si tienes pytest)
-   - Ejecuta GitHub Actions localmente (si tienes workflows)
 
 ---
 
@@ -99,7 +95,6 @@ ci-guardian status
 #   ✓ pre-commit: instalado
 #   ✓ commit-msg: instalado
 #   ✓ post-commit: instalado
-#   ✓ pre-push: instalado
 #
 # ✓ Todos los hooks están instalados (100%)
 ```

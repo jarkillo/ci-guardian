@@ -15,7 +15,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Whitelist de hooks permitidos
-HOOKS_PERMITIDOS: set[str] = {"pre-commit", "commit-msg", "post-commit", "pre-push", "pre-rebase"}
+HOOKS_PERMITIDOS: set[str] = {"pre-commit", "commit-msg", "post-commit", "pre-rebase"}
 
 # Tamaño máximo permitido para un hook (100KB)
 MAX_HOOK_SIZE: int = 1024 * 100

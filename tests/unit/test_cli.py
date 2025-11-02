@@ -114,8 +114,8 @@ class TestCLIInstall:
                 "instalados exitosamente" in resultado.output.lower()
             ), "Debe mostrar mensaje de éxito"
             assert (
-                mock_instalar.call_count == 4
-            ), "Debe instalar 4 hooks (pre-commit, commit-msg, post-commit, pre-push)"
+                mock_instalar.call_count == 3
+            ), "Debe instalar 3 hooks (pre-commit, commit-msg, post-commit)"
 
     def test_debe_fallar_cuando_no_esta_en_repo_git(
         self, cli_runner: CliRunner, tmp_path: Path
@@ -204,7 +204,7 @@ class TestCLIInstall:
             # Assert
             assert resultado.exit_code == 0, "Debe salir con código 0 con --force"
             assert mock_desinstalar.called, "Debe llamar a desinstalar_hook"
-            assert mock_instalar.call_count == 4, "Debe reinstalar los 4 hooks"
+            assert mock_instalar.call_count == 3, "Debe reinstalar los 3 hooks"
             assert (
                 "forzada" in resultado.output.lower() or "sobrescrito" in resultado.output.lower()
             ), "Debe indicar que fue una instalación forzada"
@@ -331,7 +331,7 @@ class TestCLIUninstall:
         6. Exit code = 0
         """
         # Crear hooks instalados
-        for hook in ["pre-commit", "commit-msg", "post-commit", "pre-push"]:
+        for hook in ["pre-commit", "commit-msg", "post-commit"]:
             (repo_git_mock / ".git" / "hooks" / hook).write_text(
                 f"#!/bin/bash\n# CI-GUARDIAN-HOOK\necho '{hook}'"
             )
@@ -347,7 +347,7 @@ class TestCLIUninstall:
 
             # Assert
             assert resultado.exit_code == 0, "Debe salir con código 0"
-            assert mock_desinstalar.call_count == 4, "Debe desinstalar 4 hooks"
+            assert mock_desinstalar.call_count == 3, "Debe desinstalar 3 hooks"
             assert "desinstalados" in resultado.output.lower(), "Debe mostrar mensaje de éxito"
 
     def test_debe_omitir_confirmacion_con_flag_yes(
@@ -375,7 +375,7 @@ class TestCLIUninstall:
 
             # Assert
             assert resultado.exit_code == 0, "Debe salir con código 0"
-            assert mock_desinstalar.call_count == 4, "Debe desinstalar los 4 hooks"
+            assert mock_desinstalar.call_count == 3, "Debe desinstalar los 3 hooks"
             # No debe mostrar prompt de confirmación
             assert "¿" not in resultado.output, "No debe mostrar pregunta de confirmación"
 
@@ -477,8 +477,8 @@ class TestCLIStatus:
             patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
             patch("ci_guardian.cli.obtener_hooks_instalados") as mock_hooks_instalados,
         ):
-            # Simular que solo pre-commit, commit-msg y pre-push están instalados
-            mock_hooks_instalados.return_value = ["pre-commit", "commit-msg", "pre-push"]
+            # Simular que solo pre-commit y commit-msg están instalados
+            mock_hooks_instalados.return_value = ["pre-commit", "commit-msg"]
 
             # Act
             resultado = cli_runner.invoke(status)
@@ -488,7 +488,6 @@ class TestCLIStatus:
             # Debe mostrar hooks instalados
             assert "pre-commit" in resultado.output, "Debe listar pre-commit"
             assert "commit-msg" in resultado.output, "Debe listar commit-msg"
-            assert "pre-push" in resultado.output, "Debe listar pre-push"
             # Debe mostrar hook faltante
             assert "post-commit" in resultado.output, "Debe listar post-commit como faltante"
             # Debe usar algún indicador visual (✓, ✗, [INSTALADO], etc.)
@@ -547,7 +546,7 @@ class TestCLIStatus:
                 "pre-commit",
                 "commit-msg",
                 "post-commit",
-                "pre-push",
+                "commit-msg",
             ]
 
             # Act
@@ -1196,7 +1195,7 @@ class TestCLIIntegration:
                 "pre-commit",
                 "commit-msg",
                 "post-commit",
-                "pre-push",
+                "commit-msg",
             ]
             resultado_status = cli_runner.invoke(status)
             assert resultado_status.exit_code == 0, "Status debe funcionar"

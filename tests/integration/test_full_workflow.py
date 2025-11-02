@@ -161,7 +161,7 @@ def test_debe_instalar_hooks_exitosamente_en_repo_limpio(repo_git_real: Path) ->
 
     Verifica:
     - CLI install funciona
-    - Los 4 hooks se instalan correctamente
+    - Los 3 hooks se instalan correctamente
     - Hooks tienen permisos correctos
     - Hooks contienen marca CI-GUARDIAN-HOOK
     """
@@ -174,16 +174,16 @@ def test_debe_instalar_hooks_exitosamente_en_repo_limpio(repo_git_real: Path) ->
 
     # Assert: Comando exitoso
     assert resultado.returncode == 0, f"Stderr: {resultado.stderr}"
-    assert "4 hooks instalados exitosamente" in resultado.stdout
+    assert "3 hooks instalados exitosamente" in resultado.stdout
 
     # Assert: Hooks existen (con extensión correcta según plataforma)
     hooks_dir = repo_git_real / ".git" / "hooks"
     pre_commit_path = _obtener_path_hook(hooks_dir, "pre-commit")
-    pre_push_path = _obtener_path_hook(hooks_dir, "pre-push")
+    commit_msg_path = _obtener_path_hook(hooks_dir, "commit-msg")
     post_commit_path = _obtener_path_hook(hooks_dir, "post-commit")
 
     assert pre_commit_path.exists(), "Hook pre-commit debe existir"
-    assert pre_push_path.exists(), "Hook pre-push debe existir"
+    assert commit_msg_path.exists(), "Hook commit-msg debe existir"
     assert post_commit_path.exists(), "Hook post-commit debe existir"
 
     # Assert: Hooks tienen marca CI-GUARDIAN-HOOK
@@ -258,7 +258,7 @@ def test_debe_permitir_reinstalacion_con_force(repo_git_real: Path) -> None:
     # Assert: Debe ser exitosa
     assert resultado2.returncode == 0, f"Stderr: {resultado2.stderr}"
     assert "instalación forzada" in resultado2.stdout
-    assert "4 hooks instalados exitosamente" in resultado2.stdout
+    assert "3 hooks instalados exitosamente" in resultado2.stdout
 
 
 @pytest.mark.integration
@@ -606,7 +606,7 @@ def test_debe_mostrar_status_parcial_con_hooks_incompletos(repo_git_real: Path) 
 
     # Eliminar uno de los hooks manualmente
     hooks_dir = repo_git_real / ".git" / "hooks"
-    _obtener_path_hook(hooks_dir, "pre-push").unlink()
+    _obtener_path_hook(hooks_dir, "commit-msg").unlink()
 
     # Act: Ejecutar ci-guardian status
     resultado = subprocess.run(
@@ -617,8 +617,8 @@ def test_debe_mostrar_status_parcial_con_hooks_incompletos(repo_git_real: Path) 
 
     # Assert: Comando exitoso
     assert resultado.returncode == 0, f"Stderr: {resultado.stderr}"
-    assert "3/4" in resultado.stdout or "75%" in resultado.stdout
-    assert "pre-push" in resultado.stdout and "faltante" in resultado.stdout
+    assert "2/3" in resultado.stdout or "67%" in resultado.stdout or "66%" in resultado.stdout
+    assert "commit-msg" in resultado.stdout and "faltante" in resultado.stdout
 
 
 # =============================================================================
@@ -652,7 +652,7 @@ def test_debe_desinstalar_hooks_exitosamente(repo_git_real: Path) -> None:
 
     # Assert: Comando exitoso
     assert resultado.returncode == 0, f"Stderr: {resultado.stderr}"
-    assert "4 hooks desinstalados" in resultado.stdout
+    assert "3 hooks desinstalados" in resultado.stdout
 
     # Assert: Hooks no existen (con extensión correcta según plataforma)
     hooks_dir = repo_git_real / ".git" / "hooks"
@@ -660,8 +660,8 @@ def test_debe_desinstalar_hooks_exitosamente(repo_git_real: Path) -> None:
         hooks_dir, "pre-commit"
     ).exists(), "Hook pre-commit debe ser eliminado"
     assert not _obtener_path_hook(
-        hooks_dir, "pre-push"
-    ).exists(), "Hook pre-push debe ser eliminado"
+        hooks_dir, "commit-msg"
+    ).exists(), "Hook commit-msg debe ser eliminado"
     assert not _obtener_path_hook(
         hooks_dir, "post-commit"
     ).exists(), "Hook post-commit debe ser eliminado"
