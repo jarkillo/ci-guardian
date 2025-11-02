@@ -51,9 +51,7 @@ ci-library/
 │   ├── core/                         # Funcionalidad core
 │   │   ├── __init__.py
 │   │   ├── installer.py              # Instalador de hooks (LIB-1)
-│   │   ├── venv_manager.py           # Gestión de venv (LIB-2)
-│   │   ├── hook_runner.py            # Ejecutor de validaciones
-│   │   └── config.py                 # Gestión de configuración
+│   │   └── venv_manager.py           # Gestión de venv (LIB-2)
 │   ├── validators/                   # Validadores
 │   │   ├── __init__.py
 │   │   ├── code_quality.py           # Ruff + Black (LIB-4)
@@ -98,8 +96,6 @@ venv/                                 # Python 3.12.12
 #### 1. **core/** - Funcionalidad Base
 - `installer.py`: Instala/desinstala hooks en `.git/hooks/`
 - `venv_manager.py`: Detecta/crea entornos virtuales (Linux/Windows)
-- `hook_runner.py`: Orquesta la ejecución de validadores en hooks
-- `config.py`: Carga configuración desde `.ci-guardian.yaml`
 
 #### 2. **validators/** - Validadores de Calidad
 - `code_quality.py`: Ejecuta Ruff (linter) y Black (formatter)
@@ -1248,6 +1244,87 @@ git commit -m "feat(ci): add smoke tests before PyPI publish
 
 ---
 
+## 📋 Decisiones Arquitecturales Postponed
+
+Esta sección documenta decisiones de **NO implementar** ciertas abstracciones/módulos
+hasta que se cumplan triggers específicos que justifiquen su existencia.
+
+### Por qué NO implementar `core/hook_runner.py` (LIB-23)
+
+**Decisión**: Mantener orquestación de validadores **inline** en cada hook.
+
+**Contexto**:
+- Solo 2 de 4 hooks (pre-commit, pre-push) necesitan orquestación actualmente
+- post-commit y commit-msg son simples y no requieren múltiples validadores
+- pre-commit y pre-push tienen lógica de presentación muy diferente
+
+**Rationale (Principios Aplicados)**:
+
+1. **Regla de Tres** (DRY razonable):
+   - "No abstraer hasta tener 3+ casos similares"
+   - Estado actual: Solo 2 casos de orquestación, no 3
+
+2. **YAGNI** (You Aren't Gonna Need It):
+   - No hay planes inmediatos de añadir 5+ validadores adicionales
+   - Premature abstraction añade complejidad sin beneficio claro
+
+3. **Pragmatismo**:
+   - Costo de abstracción: ~4 horas implementación + tests
+   - Beneficio actual: Marginal (solo 2 casos, lógica diferente)
+   - Riesgo: Abstracción incorrecta que requiera refactor luego
+
+**Estado Actual** (v0.2.0):
+```python
+# src/ci_guardian/hooks/pre_commit.py - Orquestación inline (191 líneas)
+def main() -> int:
+    # 1. Ruff
+    ruff_ok, msg = ejecutar_ruff(...)
+    if not ruff_ok: return 1
+
+    # 2. Black
+    black_ok, msg = ejecutar_black(...)
+    if not black_ok: return 1
+
+    # 3. Bandit
+    bandit_ok, results = ejecutar_bandit(...)
+    if not bandit_ok: return 1
+
+    # 4. Token
+    generar_token_seguro()
+
+# src/ci_guardian/hooks/pre_push.py - Orquestación configurable (170 líneas)
+def main() -> int:
+    config = cargar_configuracion()
+    validadores = config.get("validadores", ["tests"])
+
+    for validador in validadores:
+        if validador == "tests":
+            exito, msg = ejecutar_pytest()
+        elif validador == "github-actions":
+            exito, msg = ejecutar_github_actions()
+```
+
+**Triggers para Reconsiderar** (cuándo crear `core/hook_runner.py`):
+
+1. **Regla de Tres cumplida**: 3er hook que necesite orquestación de múltiples validadores
+
+2. **Duplicación significativa**: >50% de código duplicado entre hooks (actualmente <30%)
+
+3. **Complejidad individual**: Algún hook main() supera 300 líneas (actualmente: pre_commit 191, pre_push 170)
+
+4. **Nueva feature**: Sistema de plugins/validadores externos que requiera orquestación común
+
+5. **Configuración unificada**: Si se implementa `core/config.py` (LIB-24) con esquema común de orquestación
+
+**Revisión Periódica**:
+- Al completar LIB-24 (core/config.py): Evaluar si config unificado justifica runner unificado
+- Cada vez que se añada un nuevo hook con validadores
+- Antes de v1.0.0: Revisión arquitectural completa
+
+**Referencias**:
+- Issue: LIB-23
+- Consulta mentor: Python-mentor agent (2025-11-02)
+- Código actual: `src/ci_guardian/hooks/pre_commit.py:89-95`, `pre_push.py:121-127`
 
 ---
 
