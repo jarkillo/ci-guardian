@@ -7,12 +7,12 @@
 [![PyPI version](https://img.shields.io/pypi/v/ci-guardian.svg)](https://pypi.org/project/ci-guardian/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/ci-guardian.svg)](https://pypi.org/project/ci-guardian/)
 [![Project Status](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)](https://github.com/jarkillo/ci-guardian)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <!-- Testing & Quality -->
-[![Tests](https://img.shields.io/badge/tests-344%20passed-success.svg)](https://github.com/jarkillo/ci-guardian)
-[![Coverage](https://img.shields.io/badge/coverage-73%25-green.svg)](https://github.com/jarkillo/ci-guardian)
+[![Tests](https://img.shields.io/badge/tests-373%20passed-success.svg)](https://github.com/jarkillo/ci-guardian)
+[![Coverage](https://img.shields.io/badge/coverage-75%25-green.svg)](https://github.com/jarkillo/ci-guardian)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Linting: ruff](https://img.shields.io/badge/linting-ruff-red.svg)](https://github.com/astral-sh/ruff)
 
