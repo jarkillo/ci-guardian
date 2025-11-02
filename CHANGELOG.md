@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 🔬 **Smoke Test Script (LIB-17)** - Pre-Release Validation
+  - Created `scripts/smoke_test.sh` for manual pre-release validation
+  - Installs CI Guardian from wheel (NOT editable install)
+  - Tests complete workflow: build → install → commit → push
+  - Validates CLI commands work (`--version`, `--help`)
+  - Validates hook installation (100% status)
+  - Validates pre-commit hook (ruff, black, bandit)
+  - Validates commit-msg and post-commit hooks
+  - Validates pre-push hook execution
+  - Exit code 0 if all tests pass, != 0 if any fail
+  - Prevents bugs like v0.1.0 from reaching production
+  - Must run BEFORE `twine upload dist/*`
 
 #### CI/CD & Quality Gates
 - 🔬 **Smoke Tests in CI/CD Pipeline (LIB-18)** - Pre-release validation gate before PyPI publish
