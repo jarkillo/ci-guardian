@@ -1,0 +1,152 @@
+# Workflow para publicar CI Guardian en PyPI
+# Usa OpenID Connect (Trusted Publisher) - No requiere API tokens manuales
+#
+# Configuración requerida:
+# 1. En PyPI (https://pypi.org/manage/account/publishing/):
+#    - Project: ci-guardian
+#    - Owner: jarkillo
+#    - Repository: ci-guardian
+#    - Workflow: publish.yml
+#    - Environment: pypi
+#
+# 2. En TestPyPI (https://test.pypi.org/manage/account/publishing/):
+#    - Same configuración pero environment: testpypi
+
+name: Publish to PyPI
+
+on:
+  # Trigger manual para publicar en TestPyPI (testing)
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to publish to'
+        required: true
+        type: choice
+        options:
+          - testpypi
+          - pypi
+        default: testpypi
+
+  # Trigger automático cuando se crea un release (tag v*)
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distribution packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build packages
+        run: python -m build
+
+      - name: Validate packages
+        run: twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-packages
+          path: dist/
+          retention-days: 7
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/ci-guardian/
+
+    permissions:
+      id-token: write  # REQUIRED for trusted publishing
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-packages
+          path: dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          print-hash: true
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi') ||
+      (github.event_name == 'release' && github.event.action == 'published')
+
+    environment:
+      name: pypi
+      url: https://pypi.org/project/ci-guardian/
+
+    permissions:
+      id-token: write  # REQUIRED for trusted publishing
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-packages
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true
+
+  verify-installation:
+    name: Verify installation from PyPI
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Wait for PyPI to update (propagation delay)
+        run: sleep 60
+
+      - name: Install from PyPI
+        run: pip install ci-guardian
+
+      - name: Verify installation
+        run: |
+          ci-guardian --version
+          ci-guardian --help
+
+      - name: Test basic functionality
+        run: |
+          mkdir test-repo
+          cd test-repo
+          git init
+          git config user.name "Test User"
+          git config user.email "test@example.com"
+          ci-guardian status || true  # Should fail (no hooks installed yet)

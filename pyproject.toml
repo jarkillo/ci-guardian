@@ -8,14 +8,24 @@ version = "0.1.0"
 description = "Git hooks automation for Claude Code projects - enforces code quality, security, and prevents hook bypass"
 readme = "README.md"
 authors = [
-    {name = "Jarko"}
+    {name = "Jarko", email = "jarko@example.com"}
 ]
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.10"
+keywords = [
+    "git-hooks",
+    "pre-commit",
+    "code-quality",
+    "security",
+    "claude-code",
+    "automation",
+    "linting",
+    "formatting",
+    "ci-cd",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -55,10 +65,10 @@ act = [
 ci-guardian = "ci_guardian.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/jarko/ci-guardian"
-Repository = "https://github.com/jarko/ci-guardian"
-Issues = "https://github.com/jarko/ci-guardian/issues"
-Documentation = "https://github.com/jarko/ci-guardian#readme"
+Homepage = "https://github.com/jarkillo/ci-guardian"
+Repository = "https://github.com/jarkillo/ci-guardian"
+Issues = "https://github.com/jarkillo/ci-guardian/issues"
+Documentation = "https://github.com/jarkillo/ci-guardian#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]

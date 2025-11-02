@@ -1,0 +1,21 @@
+# Include documentation
+include README.md
+include LICENSE
+include CLAUDE.md
+include CONTRIBUTING.md
+
+# Include configuration files
+include pyproject.toml
+
+# Include source code
+recursive-include src/ci_guardian *.py
+
+# Include hook templates
+recursive-include src/ci_guardian/hooks *.py
+recursive-include src/ci_guardian/templates *
+
+# Exclude unwanted files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .DS_Store
