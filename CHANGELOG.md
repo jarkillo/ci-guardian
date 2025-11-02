@@ -41,6 +41,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Version bump and CHANGELOG verification before release
   - Release checklist in agent ensures quality gates
 
+- 🚨 **Lessons Learned - Post-Mortems (LIB-22)** - Documentation of critical bugs and prevention rules
+  - New section in `CLAUDE.md`: "Lessons Learned - Post-Mortems"
+  - Complete post-mortem of ModuleNotFoundError bug (v0.1.0 → v0.1.1)
+  - Root cause analysis: documentation desync, excessive mocks, missing smoke tests
+  - 4 mandatory prevention rules:
+    - ✅ NUNCA documentar features no implementadas
+    - ✅ SIEMPRE validar constantes hardcodeadas
+    - ✅ SIEMPRE ejecutar smoke tests pre-release
+    - ✅ MINIMIZAR mocks en tests críticos
+  - Comprehensive pre-release checklist with 40+ verification steps
+  - Smoke tests marked as CRÍTICO with examples from real bug
+  - References to PRs #16, #17 and related issues (LIB-16 to LIB-21)
+
 #### Runners
 - 🎬 **GitHub Actions Local Executor (LIB-7)** - Ejecución local de workflows de GitHub Actions
   - Integración con act (https://github.com/nektos/act) para ejecutar workflows en Docker
