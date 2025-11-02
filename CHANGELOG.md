@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- ✅ **Module Validation Test (LIB-16)** - Post-Mortem Prevention Measure
+  - New test validates HOOKS_ESPERADOS has corresponding modules
+  - Test imports each module using `import_module()`
+  - Fails immediately if hook listed but module doesn't exist
+  - Clear error message with solution steps
+  - Would have prevented v0.1.0 bug (pre-push in list, pre_push.py missing)
+  - Test located in `tests/unit/test_cli.py`
+  - Runs on every test suite execution
+
 - 🔬 **Smoke Test Script (LIB-17)** - Pre-Release Validation
   - Created `scripts/smoke_test.sh` for manual pre-release validation
   - Installs CI Guardian from wheel (NOT editable install)
