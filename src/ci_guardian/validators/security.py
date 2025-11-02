@@ -33,9 +33,10 @@ def ejecutar_bandit(directorio: Path, formato: str = "json") -> tuple[bool, dict
     if formato not in FORMATOS_PERMITIDOS:
         raise ValueError(f"Formato inválido: {formato}. Formatos permitidos: {FORMATOS_PERMITIDOS}")
 
-    # Validación de seguridad: prevenir path traversal
-    if ".." in str(directorio):
-        raise ValueError("Path traversal detectado: ruta inválida fuera del proyecto")
+    # Validación de seguridad: prevenir path traversal (usando función centralizada)
+    from ci_guardian.validators.common import validar_path_seguro
+
+    validar_path_seguro(directorio, "directorio")
 
     # Validar que el directorio existe
     if not directorio.exists():

@@ -31,20 +31,6 @@ HOOKS_ESPERADOS = ["pre-commit", "commit-msg", "post-commit", "pre-push"]
 DIRECTORIOS_EXCLUIDOS = {"venv", ".venv", "env", ".env", ".git", "__pycache__", "build", "dist"}
 
 
-def _validar_path_traversal(path_str: str) -> None:
-    """
-    Valida que un path no contenga path traversal (..).
-
-    Args:
-        path_str: String del path a validar
-
-    Raises:
-        ValueError: Si se detecta path traversal
-    """
-    if ".." in path_str:
-        raise ValueError("Path traversal detectado: ruta inválida")
-
-
 def _obtener_repo_path(repo: str) -> Path:
     """
     Obtiene y valida el path del repositorio.
@@ -58,8 +44,10 @@ def _obtener_repo_path(repo: str) -> Path:
     Raises:
         ValueError: Si se detecta path traversal o no es repo git
     """
-    # Validar path traversal
-    _validar_path_traversal(repo)
+    # Validar path traversal usando función centralizada
+    from ci_guardian.validators.common import validar_path_seguro
+
+    validar_path_seguro(repo, "repositorio")
 
     # Resolver path
     repo_path = Path.cwd() if repo == "." else Path(repo).resolve()
