@@ -1,0 +1,183 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+#### Core Features
+- 🔒 **Anti --no-verify Validator (LIB-3)** - Sistema de tokens para prevenir bypass de hooks
+  - Token criptográficamente seguro (256 bits usando secrets.token_hex)
+  - Validación single-use: el token se consume al validar
+  - Reversion automática de commits con --no-verify
+  - Permisos seguros (600) en archivos de token
+  - Detección de archivos corruptos o con permisos inseguros
+  - 42 tests, 94% de cobertura
+  - Prevención de command injection, path traversal
+  - Documentación clara del timing correcto de generación de tokens
+
+- 👤 **Authorship Validator (LIB-6)** - Validación de autoría de commits
+  - Rechaza commits con Co-Authored-By: Claude
+  - Validación de formato de mensaje de commit
+  - 38 tests, 90% de cobertura
+  - Hook commit-msg instalado y funcionando
+
+- 🎨 **Code Quality Executor (LIB-4)** - Ejecución de Ruff y Black
+  - Ejecutor de Ruff (linter) con output JSON
+  - Ejecutor de Black (formatter) con verificación
+  - Validación de archivos Python
+  - Manejo de timeouts (60s)
+  - 42 tests, 99% de cobertura
+  - subprocess seguro (shell=False)
+
+#### Infrastructure & Workflow
+- 🔧 **Pre-commit hooks** - Framework de pre-commit instalado y configurado
+  - 15 hooks activos: trailing whitespace, EOF fixer, YAML/JSON/TOML checks
+  - Code quality: Ruff linter + formatter, Black formatter
+  - Security: Bandit security linter
+  - Type checking: MyPy static type checker
+  - Custom hooks: Anti --no-verify in commit messages
+  - Large files detection (max 1MB)
+  - Private keys detection, merge conflicts detection
+  - Se ejecutan automáticamente en cada commit
+
+- 🔒 **Branch Protection Rules** - Protección estricta de ramas principales
+  - `main` bloqueada: solo merge mediante Pull Request
+  - `dev` bloqueada: solo merge mediante Pull Request
+  - `enforce_admins: true` - Nadie puede hacer push directo (ni siquiera admins)
+  - Force push bloqueado en ambas ramas
+  - Eliminación de ramas bloqueada
+  - Verificado y funcionando correctamente
+
+- 📁 **Improved .gitignore** - Reorganización completa con 256 líneas
+  - 13 secciones claramente organizadas
+  - Cobertura completa de herramientas de CI Guardian
+  - Patterns específicos: `.ruff_cache/`, `.pre-commit-cache/`, bandit/safety reports
+  - CI Guardian specific: `.ci-guardian-token`, `*.hook.backup`
+  - GitHub Actions (act): `.actrc`, `.secrets`
+  - Expandido OS support: macOS, Windows, Linux patterns completos
+  - IDEs adicionales: Sublime Text, Emacs
+  - Security patterns: .env variants, credentials, certificates
+
+### Changed
+- **Development Workflow** - Ahora es obligatorio usar Pull Requests
+  - No se puede hacer push directo a `main` o `dev`
+  - Todos los commits pasan por pre-commit hooks automáticamente
+  - Workflow: feature branch → push → PR → merge
+
+### Fixed
+- 🐛 **Token Generation Timing (LIB-3)** - Documentación del timing correcto
+  - Documentado que el token debe generarse al FINAL del pre-commit
+  - Previene tokens huérfanos de commits abortados
+  - Ejemplos de uso correcto e incorrecto añadidos
+  - Configuración de Bandit para skip de falsos positivos (B404, B603, B607)
+
+### Security
+- 🔒 **P1 Vulnerability Fix (LIB-3)** - Prevención de reuso de tokens
+  - Documentado el patrón arquitectónico correcto
+  - Token solo debe generarse después de todas las validaciones
+  - Previene ataque: commit abort → token orphan → reuse with --no-verify
+
+### Planned
+- LIB-2: Virtual Environment Manager - Detección/gestión de entornos virtuales (COMPLETED, needs integration)
+- LIB-8: CLI Interface - Comandos install/uninstall/status/check
+- LIB-5: Security Audit - Integración con Bandit y Safety
+- LIB-7: GitHub Actions Runner - Ejecución local de workflows
+- LIB-9: Integration Tests - Tests de flujo completo
+
+## [0.1.0] - 2025-10-30
+
+### Added
+
+#### Core Features
+- 🎉 **Hook Installer (LIB-1)** - Instalación de Git hooks con validación de seguridad
+  - Detección de repositorios Git válidos
+  - Instalación de hooks con permisos correctos (755 en Linux/macOS)
+  - Soporte multiplataforma (Linux, macOS, Windows)
+  - Prevención de sobrescritura de hooks existentes
+  - Soporte UTF-8 con manejo de Unicode
+
+#### Security Features
+- 🔒 **Whitelist de nombres de hooks** - Solo permite: pre-commit, pre-push, post-commit, pre-rebase
+- 🔒 **Prevención de path traversal** - Usa `Path.resolve()` y valida que hooks estén en `.git/hooks/`
+- 🔒 **Validación de shebang** - Whitelist de interpreters permitidos (bash, sh, python, python3)
+- 🔒 **Límite de tamaño** - Máximo 100KB por hook (previene ataques DoS)
+- 🔒 **Logging de seguridad** - Logs WARNING cuando se detectan intentos de ataque
+- 🔒 **Permisos seguros** - 755 (rwxr-xr-x) en Unix, sin archivos world-writable
+
+#### Testing & Quality
+- ✅ 51 tests implementados (1 skipped en Linux)
+- ✅ 98.55% de cobertura de código
+- ✅ Tests multiplataforma (Linux/Windows/macOS)
+- ✅ 0 vulnerabilidades detectadas por Bandit y Ruff
+- ✅ Type hints completos usando sintaxis Python 3.12+
+- ✅ Docstrings en español, formato Google
+
+#### Documentation
+- 📚 README.md con badges y estado de desarrollo
+- 📚 CONTRIBUTING.md con guía completa de contribución
+- 📚 CODE_OF_CONDUCT.md (Contributor Covenant 2.1)
+- 📚 SECURITY.md con política de reporte de vulnerabilidades
+- 📚 CLAUDE.md con documentación interna para desarrollo
+- 📚 LICENSE (MIT)
+
+#### Infrastructure
+- 🏗️ Estructura de proyecto Python moderna
+- 🏗️ pyproject.toml con configuración completa
+- 🏗️ .gitignore optimizado
+- 🏗️ Agentes de Claude Code para TDD y security audit
+- 🏗️ Fixtures de pytest reutilizables
+
+### Changed
+- N/A (primera versión)
+
+### Deprecated
+- N/A (primera versión)
+
+### Removed
+- N/A (primera versión)
+
+### Fixed
+- N/A (primera versión)
+
+### Security
+- Auditoría completa de seguridad con 0 vulnerabilidades encontradas
+- Implementación de defensa en profundidad con múltiples capas de validación
+- Prevención de command injection (no usa subprocess en esta versión)
+- Prevención de symlink attacks mediante Path.resolve()
+
+## Development Process
+
+Este proyecto sigue **TDD estricto** (Test-Driven Development):
+1. **RED**: Escribir tests que fallan
+2. **GREEN**: Implementar código mínimo para pasar tests
+3. **REFACTOR**: Mejorar código manteniendo tests verdes
+
+Cada release pasa por:
+- ✅ Tests automatizados (pytest)
+- ✅ Linting (ruff)
+- ✅ Formatting (black)
+- ✅ Type checking (mypy)
+- ✅ Security audit (bandit, ruff S-rules)
+- ✅ Code review
+
+## Links
+
+- [GitHub Repository](https://github.com/jarkillo/ci-guardian)
+- [Issue Tracker](https://github.com/jarkillo/ci-guardian/issues)
+- [Pull Requests](https://github.com/jarkillo/ci-guardian/pulls)
+- [Security Policy](https://github.com/jarkillo/ci-guardian/security/policy)
+
+---
+
+**Note**: Versions follow [Semantic Versioning](https://semver.org/):
+- **MAJOR**: Incompatible API changes
+- **MINOR**: Backwards-compatible new features
+- **PATCH**: Backwards-compatible bug fixes
+
+[Unreleased]: https://github.com/jarkillo/ci-guardian/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jarkillo/ci-guardian/releases/tag/v0.1.0

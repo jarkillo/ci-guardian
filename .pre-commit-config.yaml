@@ -1,0 +1,104 @@
+# Pre-commit configuration for CI Guardian
+# https://pre-commit.com/
+#
+# This configuration enforces the same quality standards that CI Guardian
+# will enforce on projects that use it. We eat our own dog food!
+
+repos:
+  # Standard pre-commit hooks for basic file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        name: Remove trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: check-yaml
+        name: Check YAML syntax
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-toml
+        name: Check TOML syntax
+      - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: detect-private-key
+        name: Detect private keys
+      - id: check-case-conflict
+        name: Check for case conflicts
+      - id: mixed-line-ending
+        name: Check mixed line endings
+
+  # Ruff - Fast Python linter (replaces flake8, isort, pylint, etc.)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.5
+    hooks:
+      - id: ruff
+        name: Ruff linter
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        name: Ruff formatter
+
+  # Black - Python code formatter (uncompromising)
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        name: Black formatter
+        language_version: python3.12
+        args: ['--line-length=100']
+
+  # Bandit - Security linter for Python
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.8.0'
+    hooks:
+      - id: bandit
+        name: Bandit security linter
+        args: ['-c', 'pyproject.toml']
+        additional_dependencies: ['bandit[toml]']
+
+  # MyPy - Static type checker
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v1.15.0'
+    hooks:
+      - id: mypy
+        name: MyPy type checker
+        additional_dependencies: ['types-PyYAML']
+        args: ['--ignore-missing-imports', '--python-version=3.12']
+
+  # Local hooks for project-specific checks
+  - repo: local
+    hooks:
+      # Pytest - Run tests before committing (commented out by default as it can be slow)
+      # Uncomment if you want to run tests on every commit
+      # - id: pytest
+      #   name: Run pytest
+      #   entry: bash -c 'source venv/bin/activate && pytest tests/unit/ --maxfail=1 -q'
+      #   language: system
+      #   pass_filenames: false
+      #   always_run: true
+
+      # Check that no --no-verify is used in commit messages
+      - id: check-no-verify
+        name: Check commit for --no-verify flag
+        entry: bash
+        args:
+          - -c
+          - |
+            if git log -1 --format=%B | grep -q -- "--no-verify"; then
+              echo "ERROR: Commit message contains --no-verify flag"
+              exit 1
+            fi
+        language: system
+        pass_filenames: false
+        stages: [commit-msg]
+
+# Global configuration
+default_language_version:
+  python: python3.12
+
+# Performance optimization
+default_stages: [pre-commit]
+fail_fast: false

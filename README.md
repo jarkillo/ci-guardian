@@ -2,10 +2,23 @@
 
 > Git hooks automation for Claude Code projects - Enforces code quality, security, and prevents hook bypass
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+<!-- Project Status & Version -->
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/jarkillo/ci-guardian/releases)
+[![Project Status](https://img.shields.io/badge/status-active%20development-brightgreen.svg)](https://github.com/jarkillo/ci-guardian)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+<!-- Testing & Quality -->
+[![Tests](https://img.shields.io/badge/tests-51%20passed-success.svg)](https://github.com/jarkillo/ci-guardian)
+[![Coverage](https://img.shields.io/badge/coverage-98.55%25-brightgreen.svg)](https://github.com/jarkillo/ci-guardian)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Linting: ruff](https://img.shields.io/badge/linting-ruff-red.svg)](https://github.com/astral-sh/ruff)
+
+<!-- GitHub Stats -->
+[![GitHub stars](https://img.shields.io/github/stars/jarkillo/ci-guardian?style=social)](https://github.com/jarkillo/ci-guardian/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/jarkillo/ci-guardian?style=social)](https://github.com/jarkillo/ci-guardian/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/jarkillo/ci-guardian)](https://github.com/jarkillo/ci-guardian/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/jarkillo/ci-guardian)](https://github.com/jarkillo/ci-guardian/pulls)
 
 ## 🎯 ¿Qué es CI Guardian?
 
@@ -30,6 +43,35 @@ ci-guardian install
 ```
 
 ¡Listo! Ahora todos tus commits pasarán por validación automática.
+
+## 🚧 Estado del Desarrollo
+
+CI Guardian está en **desarrollo activo**. Estado actual de las características:
+
+| Módulo | Estado | Tests | Coverage | Descripción |
+|--------|--------|-------|----------|-------------|
+| 🟢 **Hook Installer** | ✅ Completo | 51/52 passed | 98.55% | Instalación de hooks con validación de seguridad |
+| 🟡 **Venv Manager** | 🚧 Planeado | - | - | Detección/gestión de entornos virtuales |
+| 🟡 **Code Quality** | 🚧 Planeado | - | - | Integración con Ruff y Black |
+| 🟡 **Security Audit** | 🚧 Planeado | - | - | Bandit + Safety |
+| 🟡 **Authorship Validator** | 🚧 Planeado | - | - | Validación de autoría de commits |
+| 🟡 **No-Verify Blocker** | 🚧 Planeado | - | - | Sistema de tokens anti-bypass |
+| 🟡 **CLI** | 🚧 Planeado | - | - | Interfaz de línea de comandos |
+| 🟡 **GitHub Actions Runner** | 🚧 Planeado | - | - | Ejecución local de workflows |
+
+**Leyenda**: 🟢 Completo | 🟡 Planeado | 🔴 Bloqueado
+
+### ✨ LIB-1: Hook Installer (v0.1.0) - COMPLETADO
+
+El primer módulo está 100% funcional:
+
+- ✅ Instalación de hooks en repositorios Git
+- ✅ Soporte multiplataforma (Linux, macOS, Windows)
+- ✅ Validación de seguridad (path traversal, shebang whitelist)
+- ✅ Prevención de sobrescritura
+- ✅ Límite de tamaño (100KB por hook)
+- ✅ Logging de intentos de ataque
+- ✅ 98.55% de cobertura de tests
 
 ## 📋 Características
 
@@ -181,15 +223,77 @@ src/ci_guardian/
     └── hook_template.sh
 ```
 
+## 🗺️ Roadmap
+
+Ver el [proyecto completo en GitHub](https://github.com/jarkillo/ci-guardian) para el roadmap detallado. Próximos módulos:
+
+- **LIB-2**: Virtual Environment Manager - Detección automática de venv
+- **LIB-4**: Ruff & Black Integration - Ejecución automática de linters
+- **LIB-3**: No-Verify Blocker - Sistema de tokens anti-bypass
+- **LIB-8**: CLI Interface - Comandos install/uninstall/status/check
+
 ## 🤝 Contribuir
 
-1. Fork el proyecto
-2. Crea una rama (`git checkout -b feat/amazing-feature`)
-3. Escribe tests PRIMERO (TDD)
-4. Implementa tu feature
-5. Asegúrate de que todo pasa (`pytest`)
-6. Commit con conventional commits (`feat(scope): description`)
-7. Push y crea un Pull Request
+¡Las contribuciones son bienvenidas! El proyecto sigue TDD estricto y un workflow basado en Pull Requests.
+
+### ⚠️ Branch Protection Activo
+
+> **IMPORTANTE**: Las ramas `main` y `dev` están protegidas. **NO se puede hacer push directo** - todos los cambios deben ir mediante Pull Request.
+
+### 📝 Workflow de Contribución
+
+1. **Fork** el proyecto
+2. **Clone** tu fork localmente
+3. **Configura pre-commit** (se ejecuta automáticamente en cada commit):
+   ```bash
+   source venv/bin/activate
+   pre-commit install  # Ya está instalado en este repo
+   ```
+4. **Crea una rama** feature desde `dev`:
+   ```bash
+   git checkout -b feat/amazing-feature
+   ```
+5. **Escribe tests PRIMERO** (RED) - Todos los tests deben fallar
+6. **Implementa** el código mínimo (GREEN) - Haz que los tests pasen
+7. **Refactoriza** si es necesario (REFACTOR)
+8. **Commit** con [Conventional Commits](https://www.conventionalcommits.org/):
+   ```bash
+   git commit -m "feat(scope): description"
+   # Los pre-commit hooks se ejecutan automáticamente aquí ✓
+   ```
+9. **Push** tu rama feature:
+   ```bash
+   git push origin feat/amazing-feature
+   ```
+10. **Crea Pull Request** hacia `dev` (NO hacia `main`):
+    ```bash
+    gh pr create --base dev
+    ```
+
+### 🔧 Pre-commit Hooks
+
+Los siguientes hooks se ejecutan **automáticamente** en cada commit:
+
+- ✅ **Hygiene**: Trailing whitespace, EOF, YAML/JSON/TOML syntax
+- ✅ **Ruff**: Linter + formatter (auto-fix)
+- ✅ **Black**: Code formatter
+- ✅ **Bandit**: Security linter
+- ✅ **MyPy**: Type checker
+- ✅ **Custom**: Anti --no-verify detection
+
+Si algún hook falla, el commit se bloquea hasta que se corrija.
+
+### Estándares de Calidad
+
+- ✅ Coverage mínimo: 75% (apuntamos a 95%+)
+- ✅ Type hints completos (Python 3.12+: `list[T]`, `str | None`)
+- ✅ Docstrings en español, formato Google
+- ✅ Tests multiplataforma (Linux/Windows)
+- ✅ Sin vulnerabilidades de seguridad (Bandit, Ruff S-rules)
+- ✅ Todos los pre-commit hooks deben pasar
+
+Ver [CONTRIBUTING.md](CONTRIBUTING.md) para la guía completa de contribución.
+Ver [CLAUDE.md](CLAUDE.md) para documentación detallada del desarrollo.
 
 ## 📝 Licencia
 
