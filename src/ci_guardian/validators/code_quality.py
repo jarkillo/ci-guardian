@@ -23,13 +23,12 @@ def _filtrar_archivos_python(archivos: list[Path]) -> list[Path]:
     Raises:
         ValueError: Si se detecta path traversal (..)
     """
+    from ci_guardian.validators.common import validar_path_seguro
+
     archivos_validos = []
     for archivo in archivos:
-        # Rechazar path traversal (seguridad crítica)
-        if ".." in str(archivo):
-            raise ValueError(
-                f"path traversal detectado en '{archivo}': ruta inválida fuera del proyecto"
-            )
+        # Rechazar path traversal (seguridad crítica) usando función centralizada
+        validar_path_seguro(archivo, "archivo")
 
         # Solo archivos .py
         if archivo.suffix != ".py":
