@@ -18,6 +18,23 @@ from pathlib import Path
 
 import pytest
 
+from ci_guardian.core.installer import obtener_extension_hook
+
+
+def _obtener_path_hook(hooks_dir: Path, hook_name: str) -> Path:
+    """
+    Obtiene el path completo de un hook con la extensión correcta para la plataforma.
+
+    Args:
+        hooks_dir: Directorio de hooks (.git/hooks)
+        hook_name: Nombre del hook sin extensión (pre-commit, pre-push, etc.)
+
+    Returns:
+        Path al hook con extensión correcta (.bat en Windows, sin extensión en Linux/Mac)
+    """
+    extension = obtener_extension_hook()
+    return hooks_dir / f"{hook_name}{extension}"
+
 
 @pytest.fixture
 def repo_git_real(tmp_path: Path) -> Path:
@@ -159,14 +176,18 @@ def test_debe_instalar_hooks_exitosamente_en_repo_limpio(repo_git_real: Path) ->
     assert resultado.returncode == 0, f"Stderr: {resultado.stderr}"
     assert "3 hooks instalados exitosamente" in resultado.stdout
 
-    # Assert: Hooks existen
+    # Assert: Hooks existen (con extensión correcta según plataforma)
     hooks_dir = repo_git_real / ".git" / "hooks"
-    assert (hooks_dir / "pre-commit").exists(), "Hook pre-commit debe existir"
-    assert (hooks_dir / "pre-push").exists(), "Hook pre-push debe existir"
-    assert (hooks_dir / "post-commit").exists(), "Hook post-commit debe existir"
+    pre_commit_path = _obtener_path_hook(hooks_dir, "pre-commit")
+    pre_push_path = _obtener_path_hook(hooks_dir, "pre-push")
+    post_commit_path = _obtener_path_hook(hooks_dir, "post-commit")
+
+    assert pre_commit_path.exists(), "Hook pre-commit debe existir"
+    assert pre_push_path.exists(), "Hook pre-push debe existir"
+    assert post_commit_path.exists(), "Hook post-commit debe existir"
 
     # Assert: Hooks tienen marca CI-GUARDIAN-HOOK
-    pre_commit_content = (hooks_dir / "pre-commit").read_text(encoding="utf-8")
+    pre_commit_content = pre_commit_path.read_text(encoding="utf-8")
     assert "CI-GUARDIAN-HOOK" in pre_commit_content, "Hook debe tener marca CI-GUARDIAN-HOOK"
 
     # Assert: Permisos correctos en Linux (solo si no es Windows)
@@ -175,7 +196,7 @@ def test_debe_instalar_hooks_exitosamente_en_repo_limpio(repo_git_real: Path) ->
     if platform.system() != "Windows":
         import stat
 
-        permisos = (hooks_dir / "pre-commit").stat().st_mode
+        permisos = pre_commit_path.stat().st_mode
         assert permisos & stat.S_IXUSR, "Hook debe tener permisos de ejecución"
 
 
@@ -585,7 +606,7 @@ def test_debe_mostrar_status_parcial_con_hooks_incompletos(repo_git_real: Path) 
 
     # Eliminar uno de los hooks manualmente
     hooks_dir = repo_git_real / ".git" / "hooks"
-    (hooks_dir / "pre-push").unlink()
+    _obtener_path_hook(hooks_dir, "pre-push").unlink()
 
     # Act: Ejecutar ci-guardian status
     resultado = subprocess.run(
@@ -633,11 +654,17 @@ def test_debe_desinstalar_hooks_exitosamente(repo_git_real: Path) -> None:
     assert resultado.returncode == 0, f"Stderr: {resultado.stderr}"
     assert "3 hooks desinstalados" in resultado.stdout
 
-    # Assert: Hooks no existen
+    # Assert: Hooks no existen (con extensión correcta según plataforma)
     hooks_dir = repo_git_real / ".git" / "hooks"
-    assert not (hooks_dir / "pre-commit").exists(), "Hook pre-commit debe ser eliminado"
-    assert not (hooks_dir / "pre-push").exists(), "Hook pre-push debe ser eliminado"
-    assert not (hooks_dir / "post-commit").exists(), "Hook post-commit debe ser eliminado"
+    assert not _obtener_path_hook(
+        hooks_dir, "pre-commit"
+    ).exists(), "Hook pre-commit debe ser eliminado"
+    assert not _obtener_path_hook(
+        hooks_dir, "pre-push"
+    ).exists(), "Hook pre-push debe ser eliminado"
+    assert not _obtener_path_hook(
+        hooks_dir, "post-commit"
+    ).exists(), "Hook post-commit debe ser eliminado"
 
 
 @pytest.mark.integration
