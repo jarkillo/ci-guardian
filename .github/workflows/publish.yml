@@ -66,9 +66,107 @@ jobs:
           path: dist/
           retention-days: 7
 
+  smoke-test:
+    name: Run smoke tests on built package
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-packages
+          path: dist/
+
+      - name: Create clean test environment
+        run: |
+          # Crear venv limpio para smoke tests
+          python -m venv /tmp/smoke-venv
+          source /tmp/smoke-venv/bin/activate
+
+          # Instalar desde wheel (NO editable install)
+          pip install dist/*.whl
+
+          echo "✅ Package installed successfully"
+
+      - name: Test CLI availability
+        run: |
+          source /tmp/smoke-venv/bin/activate
+          ci-guardian --version
+          ci-guardian --help
+          echo "✅ CLI commands work"
+
+      - name: Test hook installation workflow
+        run: |
+          source /tmp/smoke-venv/bin/activate
+
+          # Crear repo Git de prueba
+          cd /tmp
+          git config --global user.name "Smoke Test Bot"
+          git config --global user.email "smoke@test.bot"
+          git config --global init.defaultBranch main
+          git init smoke-test-repo
+          cd smoke-test-repo
+
+          # Instalar hooks
+          ci-guardian install
+          echo "✅ Hooks installed"
+
+          # Validar que todos los hooks están instalados (100%)
+          ci-guardian status | grep -q "100%"
+          echo "✅ All hooks present (100%)"
+
+      - name: Test commit workflow (triggers hooks)
+        run: |
+          source /tmp/smoke-venv/bin/activate
+          cd /tmp/smoke-test-repo
+
+          # Crear archivo Python de prueba
+          echo "print('smoke test')" > test.py
+          git add test.py
+
+          # Ejecutar commit (trigger pre-commit, commit-msg, post-commit hooks)
+          git commit -m "test: smoke test commit"
+          echo "✅ Commit workflow passed"
+
+      - name: Test push workflow (triggers pre-push hook)
+        run: |
+          source /tmp/smoke-venv/bin/activate
+          cd /tmp/smoke-test-repo
+
+          # Verificar si existe hook pre-push
+          if [ -f .git/hooks/pre-push ]; then
+            echo "ℹ️  pre-push hook detected, testing push workflow"
+
+            # Crear remote de prueba
+            git init --bare /tmp/smoke-remote.git
+            git remote add origin /tmp/smoke-remote.git
+
+            # Ejecutar push (trigger pre-push hook)
+            # Usa HEAD para pushear la rama actual (main)
+            git push origin HEAD
+            echo "✅ Push workflow passed (pre-push hook executed)"
+          else
+            echo "ℹ️  No pre-push hook installed, skipping push test"
+            echo "✅ Push workflow test skipped (hook not present)"
+          fi
+
+      - name: Smoke tests summary
+        run: |
+          echo "🎉 All smoke tests passed!"
+          echo "Package is ready for publication to PyPI"
+
   publish-testpypi:
     name: Publish to TestPyPI
-    needs: build
+    needs: [build, smoke-test]
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
 
@@ -94,7 +192,7 @@ jobs:
 
   publish-pypi:
     name: Publish to PyPI
-    needs: build
+    needs: [build, smoke-test]
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi') ||

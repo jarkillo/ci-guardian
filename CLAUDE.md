@@ -1195,6 +1195,168 @@ Antes de considerar completa una funcionalidad:
 
 ---
 
+## 🔄 Workflow de Commits y Releases
+
+### Antes de Cada Commit
+
+**IMPORTANTE**: Antes de crear cualquier commit, Claude Code debe verificar y actualizar la documentación relevante.
+
+#### Checklist Pre-Commit Obligatorio
+
+1. **Verificar cambios en interfaz pública**
+   ```bash
+   # Si modificaste CLI, core API, o funcionalidad pública
+   git diff --cached | grep -E "(def |class |@click)"
+   ```
+   - Si hay cambios: Actualizar `README.md` con nuevos comandos/APIs
+   - Actualizar ejemplos de uso si cambiaron
+   - Actualizar badges si cambia versión o tests
+
+2. **Verificar cambios en arquitectura**
+   ```bash
+   # Si añadiste/modificaste módulos, estructura, o patrones
+   git diff --cached | grep -E "(^new file|^rename|^delete)"
+   ```
+   - Si hay cambios: Actualizar `CLAUDE.md` sección "Arquitectura del Proyecto"
+   - Actualizar diagramas de estructura si aplicable
+   - Actualizar orden de implementación si cambia
+
+3. **Actualizar CHANGELOG.md**
+   - SIEMPRE añadir entrada en sección `[Unreleased]`
+   - Usar categorías: `Added`, `Changed`, `Fixed`, `Removed`, `Security`
+   - Incluir referencia al issue de Linear (ej: `LIB-18`)
+
+4. **Verificar docstrings**
+   ```bash
+   # Verificar que funciones nuevas/modificadas tienen docstrings
+   ruff check --select D
+   ```
+
+#### Ejemplo de Workflow Pre-Commit
+
+```bash
+# 1. Claude Code termina implementación
+# 2. ANTES de git add, revisar cambios:
+git diff src/
+
+# 3. Identificar si hay cambios en:
+#    - CLI (cli.py) → Actualizar README.md sección "Uso"
+#    - Core API (core/*.py) → Actualizar README.md sección "API"
+#    - Arquitectura → Actualizar CLAUDE.md
+#    - Hooks → Actualizar QUICKSTART.md
+
+# 4. Actualizar documentación pertinente
+vi README.md  # o CLAUDE.md, o ambos
+
+# 5. Actualizar CHANGELOG.md
+vi CHANGELOG.md
+# Añadir en [Unreleased]:
+# ### Added
+# - Smoke tests in CI/CD pipeline before PyPI publish (LIB-18)
+
+# 6. Ahora SÍ hacer commit incluyendo documentación
+git add src/ README.md CHANGELOG.md
+git commit -m "feat(ci): add smoke tests before PyPI publish
+
+- Add smoke-test job in .github/workflows/publish.yml
+- Tests install from wheel and validate full workflow
+- Blocks publication if smoke tests fail
+- Closes LIB-18"
+```
+
+### Antes de Cada Release
+
+**CRÍTICO**: Antes de publicar a PyPI, SIEMPRE ejecutar smoke tests localmente.
+
+#### Checklist Pre-Release Obligatorio
+
+1. **Ejecutar smoke tests locales**
+   ```bash
+   # Build del paquete
+   python -m build --clean
+
+   # Crear venv limpio para smoke test
+   python -m venv /tmp/release-smoke-test
+   source /tmp/release-smoke-test/bin/activate
+
+   # Instalar desde wheel (NO editable)
+   pip install dist/ci_guardian-*.whl
+
+   # Smoke tests básicos
+   ci-guardian --version
+   ci-guardian --help
+
+   # Smoke test completo: crear repo y probar workflow
+   cd /tmp
+   git init smoke-repo
+   cd smoke-repo
+   git config user.name "Release Tester"
+   git config user.email "release@test.com"
+
+   # Instalar hooks
+   ci-guardian install
+
+   # Verificar 100% instalado
+   ci-guardian status | grep "100%"
+
+   # Test commit
+   echo "print('release smoke test')" > test.py
+   git add test.py
+   git commit -m "test: release smoke test"
+
+   echo "✅ Smoke tests pasados - Safe to release"
+   ```
+
+2. **Actualizar versión en pyproject.toml**
+   ```toml
+   [project]
+   version = "0.1.2"  # Incrementar según semantic versioning
+   ```
+
+3. **Actualizar CHANGELOG.md**
+   ```markdown
+   ## [0.1.2] - 2025-11-02
+   ### Added
+   - Smoke tests in CI/CD pipeline (LIB-18)
+   - Documentation update workflow (LIB-10)
+
+   ### Fixed
+   - Bug critical en pre-push hook (LIB-16)
+   ```
+
+4. **Crear tag y release**
+   ```bash
+   git tag -a v0.1.2 -m "Release v0.1.2: Smoke tests + Doc workflow"
+   git push origin v0.1.2
+   ```
+
+5. **Workflow automático de CI/CD**
+   - GitHub Actions detecta tag `v*`
+   - Ejecuta job `build`
+   - Ejecuta job `smoke-test` (GATE DE CALIDAD)
+   - Solo si smoke tests pasan → `publish-pypi`
+   - Publica a PyPI con Trusted Publisher
+
+#### Por Qué Smoke Tests Son Críticos
+
+**Problema real (Post-Mortem v0.1.0)**:
+- Se publicó v0.1.0 a PyPI
+- Bug crítico: `ModuleNotFoundError` en `pre-push` hook
+- Usuarios instalaron paquete roto
+- Se requirió hotfix urgente v0.1.1
+
+**Root Cause**:
+- NO se instaló el paquete desde `dist/` antes de publicar
+- Solo se probó con `pip install -e .` (editable install)
+- Bug solo aparecía en instalación real desde wheel
+
+**Solución**:
+- Smoke tests SIEMPRE instalan desde wheel (NO editable)
+- Prueban workflow completo: install → commit → push
+- Bloquean publicación si algo falla
+
+---
+
 ## 🔄 Ciclo de Vida del Proyecto
 
 ```
