@@ -26,8 +26,13 @@ def ejecutar_bandit(directorio: Path, formato: str = "json") -> tuple[bool, dict
         - resultados: Dict con vulnerabilidades encontradas
 
     Raises:
-        ValueError: Si directorio no existe o hay path traversal
+        ValueError: Si directorio no existe, hay path traversal o formato inválido
     """
+    # Validar formato (whitelist)
+    FORMATOS_PERMITIDOS = {"json", "txt", "html", "xml", "csv"}
+    if formato not in FORMATOS_PERMITIDOS:
+        raise ValueError(f"Formato inválido: {formato}. Formatos permitidos: {FORMATOS_PERMITIDOS}")
+
     # Validación de seguridad: prevenir path traversal
     if ".." in str(directorio):
         raise ValueError("Path traversal detectado: ruta inválida fuera del proyecto")
@@ -54,8 +59,20 @@ def ejecutar_bandit(directorio: Path, formato: str = "json") -> tuple[bool, dict
             shell=False,  # CRÍTICO: prevenir command injection
         )
 
-        # Parsear JSON
-        data = json.loads(resultado.stdout) if formato == "json" else {"raw": resultado.stdout}
+        # Parsear JSON de forma segura
+        if formato == "json":
+            try:
+                data = json.loads(resultado.stdout)
+            except json.JSONDecodeError as e:
+                return (
+                    False,
+                    {
+                        "error": "Error parseando output de Bandit: JSON inválido",
+                        "detalle": str(e)[:100],  # Limitar longitud
+                    },
+                )
+        else:
+            data = {"raw": resultado.stdout}
 
         # Verificar si hay vulnerabilidades HIGH
         metrics = data.get("metrics", {}).get("_totals", {})
@@ -124,8 +141,23 @@ def ejecutar_safety(
             shell=False,  # CRÍTICO: prevenir command injection
         )
 
-        # Parsear JSON
-        vulnerabilidades = json.loads(resultado.stdout)
+        # Parsear JSON de forma segura
+        try:
+            vulnerabilidades = json.loads(resultado.stdout)
+        except json.JSONDecodeError as e:
+            return (
+                False,
+                [
+                    {
+                        "error": "Error parseando output de Safety: JSON inválido",
+                        "detalle": str(e)[:100],  # Limitar longitud
+                    }
+                ],
+            )
+
+        # Validar que es una lista
+        if not isinstance(vulnerabilidades, list):
+            return (False, [{"error": "Output de Safety no es una lista válida"}])
 
         # Si la lista está vacía, no hay vulnerabilidades
         return (len(vulnerabilidades) == 0, vulnerabilidades)
