@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### CI/CD & Quality Gates
+- 🔬 **Smoke Tests in CI/CD Pipeline (LIB-18)** - Pre-release validation gate before PyPI publish
+  - New `smoke-test` job in `.github/workflows/publish.yml`
+  - Tests install from wheel (NOT editable) in clean environment
+  - Validates CLI availability (`ci-guardian --version`, `--help`)
+  - Tests full workflow: hook installation, commit, push
+  - Verifies 100% hook installation via `ci-guardian status`
+  - Blocks TestPyPI and PyPI publication if smoke tests fail
+  - Prevents critical bugs from reaching production (Post-Mortem v0.1.0)
+  - Integration with `publish-testpypi` and `publish-pypi` jobs via `needs` dependency
+
+#### Documentation & Workflow
+- 📝 **Pre-Commit Documentation Workflow** - Automated documentation sync with code changes
+  - Updated `CLAUDE.md` with mandatory pre-commit checklist
+  - Updated `git-workflow-manager` agent with documentation verification
+  - Enforces README.md updates when CLI/API changes
+  - Enforces CLAUDE.md updates when architecture changes
+  - Mandatory CHANGELOG.md update for every commit
+  - Verification of docstrings on new/modified functions
+  - Documentation included in same commit as code changes
+
+- 🧪 **Pre-Release Smoke Test Workflow** - Manual smoke test guide for releases
+  - Updated `CLAUDE.md` with pre-release checklist
+  - Updated `git-workflow-manager` agent with smoke test enforcement
+  - Step-by-step local smoke test procedure before tagging
+  - Prevents releases without wheel validation (Post-Mortem v0.1.0)
+  - Version bump and CHANGELOG verification before release
+  - Release checklist in agent ensures quality gates
+
 #### Runners
 - 🎬 **GitHub Actions Local Executor (LIB-7)** - Ejecución local de workflows de GitHub Actions
   - Integración con act (https://github.com/nektos/act) para ejecutar workflows en Docker
