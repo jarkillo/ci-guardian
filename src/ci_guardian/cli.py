@@ -26,9 +26,6 @@ from ci_guardian.validators.code_quality import ejecutar_black, ejecutar_ruff
 # Hooks que debe gestionar CI Guardian
 HOOKS_ESPERADOS = ["pre-commit", "commit-msg", "post-commit", "pre-push"]
 
-# Directorios a excluir al buscar archivos Python
-DIRECTORIOS_EXCLUIDOS = {"venv", ".venv", "env", ".env", ".git", "__pycache__", "build", "dist"}
-
 
 def _obtener_repo_path(repo: str) -> Path:
     """
@@ -151,39 +148,6 @@ fi
 "{python_ejecutable}" -m ci_guardian.hooks.{modulo_nombre} "$@"
 exit $?
 """
-
-
-def _filtrar_archivos_proyecto(archivos: list[Path], repo_path: Path) -> list[Path]:
-    """
-    Filtra archivos Python del proyecto, excluyendo venv, .git, etc.
-
-    Args:
-        archivos: Lista de archivos encontrados
-        repo_path: Ruta al repositorio
-
-    Returns:
-        Lista de archivos filtrados
-    """
-    archivos_filtrados = []
-
-    for archivo in archivos:
-        # Obtener path relativo al repo
-        try:
-            relativo = archivo.relative_to(repo_path)
-        except ValueError:
-            # Archivo fuera del repo - asumimos que es válido (para testing con mocks)
-            # En producción esto solo ocurre con mocks mal configurados
-            archivos_filtrados.append(archivo)
-            continue
-
-        # Verificar si está en directorio excluido
-        partes = relativo.parts
-        if any(parte in DIRECTORIOS_EXCLUIDOS for parte in partes):
-            continue
-
-        archivos_filtrados.append(archivo)
-
-    return archivos_filtrados
 
 
 @click.group()
@@ -363,8 +327,12 @@ def check(repo: str) -> None:
         # Buscar archivos Python recursivamente
         archivos_encontrados = list(repo_path.rglob("**/*.py"))
 
-        # Filtrar archivos del proyecto (excluir venv, .git, etc.)
-        archivos = _filtrar_archivos_proyecto(archivos_encontrados, repo_path)
+        # Filtrar archivos del proyecto (excluir venv, .git, etc.) usando función centralizada
+        from ci_guardian.validators.file_utils import filtrar_archivos_python_seguros
+
+        archivos = filtrar_archivos_python_seguros(
+            archivos_encontrados, repo_path=repo_path, validar_existencia=False
+        )
 
         # Verificar si hay archivos
         if not archivos:
