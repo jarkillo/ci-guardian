@@ -608,12 +608,13 @@ class TestCLIStatus:
             patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
             patch("ci_guardian.cli.obtener_hooks_instalados") as mock_hooks_instalados,
         ):
-            # Simular que todos los hooks están instalados
+            # Simular que TODOS los hooks esperados están instalados
+            # HOOKS_ESPERADOS = ["pre-commit", "commit-msg", "post-commit", "pre-push"]
             mock_hooks_instalados.return_value = [
                 "pre-commit",
                 "commit-msg",
                 "post-commit",
-                "commit-msg",
+                "pre-push",  # Era "commit-msg" duplicado - corregido
             ]
 
             # Act
@@ -1199,7 +1200,9 @@ class TestCLIMain:
             or "comando no encontrado" in resultado.output.lower()
         ), "Debe indicar que el comando no existe"
 
-    def test_debe_usar_colorama_para_output_en_windows(self, cli_runner: CliRunner) -> None:
+    def test_debe_usar_colorama_para_output_en_windows(
+        self, cli_runner: CliRunner, repo_git_mock: Path
+    ) -> None:
         """
         Debe inicializar colorama para output con colores en Windows.
 
@@ -1210,16 +1213,16 @@ class TestCLIMain:
         """
         with (
             patch("platform.system", return_value="Windows"),
-            patch("ci_guardian.cli.colorama.init"),
+            patch("ci_guardian.cli.colorama.init") as mock_colorama_init,
+            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
+            patch("ci_guardian.cli.obtener_hooks_instalados", return_value=[]),
         ):
-            # Act
-            cli_runner.invoke(main, ["--help"])
+            # Act - invocar main() con subcomando para que ejecute el cuerpo de main()
+            cli_runner.invoke(main, ["status"])
 
             # Assert
-            # Verificar que se intentó inicializar colorama
-            # (esto depende de si main() lo hace automáticamente)
-            # Si no está implementado aún, este test fallará en fase RED
-            pass
+            # Verificar que colorama.init() fue llamado en Windows
+            mock_colorama_init.assert_called_once()
 
 
 # ============================================================================
@@ -1388,3 +1391,198 @@ def test_validar_hook_existe_debe_fallar_con_hook_inexistente() -> None:
     assert "ci_guardian.hooks.pre_rebase" in error_msg
     assert "no existe" in error_msg
     assert "github.com/jarkillo/ci-guardian/issues" in error_msg
+
+
+# ============================================================================
+# TESTS MANEJO DE EXCEPCIONES (LIB-29)
+# ============================================================================
+
+
+class TestCLIExceptionHandling:
+    """Tests para manejo de excepciones genéricas en comandos CLI."""
+
+    def test_install_debe_manejar_exception_generica(
+        self, cli_runner: CliRunner, repo_git_mock: Path
+    ) -> None:
+        """
+        Install debe manejar excepciones genéricas sin crash.
+
+        Escenario:
+        1. Ocurre una excepción inesperada durante install
+        2. CLI captura la excepción
+        3. Muestra mensaje de error
+        4. Exit code = 1
+        """
+        with (
+            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
+            patch("ci_guardian.cli._validar_hook_existe") as mock_validar,
+        ):
+            # Simular excepción genérica
+            mock_validar.side_effect = Exception("Error inesperado de sistema")
+
+            # Act
+            resultado = cli_runner.invoke(install)
+
+            # Assert
+            assert resultado.exit_code == 1, "Debe fallar con exit code 1"
+            assert "error inesperado" in resultado.output.lower(), "Debe mostrar error inesperado"
+
+    def test_uninstall_debe_manejar_exception_generica(
+        self, cli_runner: CliRunner, repo_git_mock: Path
+    ) -> None:
+        """
+        Uninstall debe manejar excepciones genéricas sin crash.
+
+        Escenario:
+        1. Ocurre una excepción inesperada durante uninstall
+        2. CLI captura la excepción
+        3. Muestra mensaje de error
+        4. Exit code = 1
+        """
+        with (
+            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
+            patch("ci_guardian.cli.desinstalar_hook") as mock_desinstalar,
+        ):
+            # Simular excepción genérica
+            mock_desinstalar.side_effect = Exception("Error inesperado de filesystem")
+
+            # Act
+            resultado = cli_runner.invoke(uninstall, ["--yes"])
+
+            # Assert
+            assert resultado.exit_code == 1, "Debe fallar con exit code 1"
+            assert "error inesperado" in resultado.output.lower(), "Debe mostrar error inesperado"
+
+    def test_status_debe_manejar_exception_generica(
+        self, cli_runner: CliRunner, repo_git_mock: Path
+    ) -> None:
+        """
+        Status debe manejar excepciones genéricas sin crash.
+
+        Escenario:
+        1. Ocurre una excepción inesperada durante status
+        2. CLI captura la excepción
+        3. Muestra mensaje de error
+        4. Exit code = 1
+        """
+        with (
+            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
+            patch("ci_guardian.cli.obtener_hooks_instalados") as mock_hooks,
+        ):
+            # Simular excepción genérica
+            mock_hooks.side_effect = Exception("Error al leer directorio hooks")
+
+            # Act
+            resultado = cli_runner.invoke(status)
+
+            # Assert
+            assert resultado.exit_code == 1, "Debe fallar con exit code 1"
+            assert "error inesperado" in resultado.output.lower(), "Debe mostrar error inesperado"
+
+    def test_check_debe_manejar_exception_generica(
+        self, cli_runner: CliRunner, repo_git_mock: Path
+    ) -> None:
+        """
+        Check debe manejar excepciones genéricas sin crash.
+
+        Escenario:
+        1. Ocurre una excepción inesperada durante check
+        2. CLI captura la excepción
+        3. Muestra mensaje de error
+        4. Exit code = 1
+        """
+        with (
+            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
+            patch("ci_guardian.cli.Path.rglob") as mock_rglob,
+        ):
+            # Simular excepción genérica
+            mock_rglob.side_effect = Exception("Error al buscar archivos")
+
+            # Act
+            resultado = cli_runner.invoke(check)
+
+            # Assert
+            assert resultado.exit_code == 1, "Debe fallar con exit code 1"
+            assert "error inesperado" in resultado.output.lower(), "Debe mostrar error inesperado"
+
+    def test_configure_debe_manejar_exception_generica(
+        self, cli_runner: CliRunner, repo_git_mock: Path
+    ) -> None:
+        """
+        Configure debe manejar excepciones genéricas sin crash.
+
+        Escenario:
+        1. Ocurre una excepción inesperada durante configure
+        2. CLI captura la excepción
+        3. Muestra mensaje de error
+        4. Exit code = 1
+        """
+        with (
+            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
+            # CIGuardianConfig se importa dentro de configure(), no al nivel del módulo
+            patch("ci_guardian.core.config.CIGuardianConfig.default") as mock_config,
+        ):
+            # Simular excepción genérica
+            mock_config.side_effect = Exception("Error al crear configuración")
+
+            # Act
+            resultado = cli_runner.invoke(configure)
+
+            # Assert
+            assert resultado.exit_code == 1, "Debe fallar con exit code 1"
+            assert "error inesperado" in resultado.output.lower(), "Debe mostrar error inesperado"
+
+    def test_check_debe_manejar_valueerror_de_ruff(
+        self, cli_runner: CliRunner, repo_git_mock: Path, archivos_python_mock: list[Path]
+    ) -> None:
+        """
+        Check debe manejar ValueError de Ruff (path traversal).
+
+        Escenario:
+        1. ejecutar_ruff lanza ValueError por path traversal
+        2. CLI captura ValueError
+        3. Muestra error de seguridad
+        4. Exit code = 1
+        """
+        with (
+            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
+            patch("ci_guardian.cli.Path.rglob", return_value=archivos_python_mock),
+            patch("ci_guardian.cli.ejecutar_ruff") as mock_ruff,
+        ):
+            # Simular ValueError de path traversal
+            mock_ruff.side_effect = ValueError("path traversal detectado en ../../etc/passwd")
+
+            # Act
+            resultado = cli_runner.invoke(check)
+
+            # Assert
+            assert resultado.exit_code == 1, "Debe fallar con exit code 1"
+            assert "error" in resultado.output.lower(), "Debe mostrar error"
+
+    def test_check_debe_manejar_valueerror_de_black(
+        self, cli_runner: CliRunner, repo_git_mock: Path, archivos_python_mock: list[Path]
+    ) -> None:
+        """
+        Check debe manejar ValueError de Black (path traversal).
+
+        Escenario:
+        1. ejecutar_black lanza ValueError por path traversal
+        2. CLI captura ValueError
+        3. Muestra error de seguridad
+        4. Exit code = 1
+        """
+        with (
+            patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock),
+            patch("ci_guardian.cli.Path.rglob", return_value=archivos_python_mock),
+            patch("ci_guardian.cli.ejecutar_ruff", return_value=(True, "OK")),
+            patch("ci_guardian.cli.ejecutar_black") as mock_black,
+        ):
+            # Simular ValueError de path traversal
+            mock_black.side_effect = ValueError("path traversal detectado en ../../etc/passwd")
+
+            # Act
+            resultado = cli_runner.invoke(check)
+
+            # Assert
+            assert resultado.exit_code == 1, "Debe fallar con exit code 1"
+            assert "error" in resultado.output.lower(), "Debe mostrar error"
