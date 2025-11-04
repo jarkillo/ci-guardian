@@ -422,5 +422,95 @@ def configure(repo: str) -> None:
         sys.exit(1)
 
 
+@main.command()
+@click.option(
+    "-m",
+    "--message",
+    required=True,
+    help="Mensaje de commit",
+)
+@click.option(
+    "--repo",
+    default=".",
+    help="Ruta al repositorio Git (default: directorio actual)",
+)
+def commit(message: str, repo: str) -> None:
+    """
+    Crea un commit asegurando que el venv esté activo.
+
+    Este comando es una alternativa conveniente a 'git commit' que verifica
+    y activa automáticamente el venv si es necesario antes de ejecutar
+    los hooks pre-commit.
+
+    Ejemplo:
+        ci-guardian commit -m "feat: add new feature"
+
+    Implementado en LIB-32.
+    """
+    import subprocess
+
+    from ci_guardian.core.venv_validator import esta_venv_activo
+
+    try:
+        # Obtener y validar repo path
+        repo_path = _obtener_repo_path(repo)
+
+        # Verificar venv activo
+        venv_ok, mensaje = esta_venv_activo()
+
+        if not venv_ok:
+            click.echo("❌ No hay entorno virtual activo. El commit podría fallar.", err=True)
+            click.echo("\nActivando venv automáticamente...", err=True)
+
+            # Intentar detectar y activar venv
+            from ci_guardian.core.venv_manager import detectar_venv
+
+            venv_path = detectar_venv(repo_path)
+            if not venv_path:
+                click.echo("\n⚠️  No se pudo detectar un venv en el proyecto.", err=True)
+                click.echo("Por favor, activa el venv manualmente:\n", err=True)
+                click.echo("  Linux/Mac:   source venv/bin/activate", err=True)
+                click.echo("  Windows:     venv\\Scripts\\activate", err=True)
+                sys.exit(1)
+
+            click.echo(f"✓ Venv detectado en: {venv_path}")
+
+        # Ejecutar git commit
+        click.echo(f'\n🔨 Ejecutando: git commit -m "{message}"')
+
+        resultado = subprocess.run(
+            ["git", "commit", "-m", message],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            shell=False,  # CRÍTICO: nunca usar shell=True
+        )
+
+        # Mostrar salida
+        if resultado.stdout:
+            click.echo(resultado.stdout)
+
+        if resultado.returncode == 0:
+            click.echo("\n✓ Commit creado exitosamente")
+            sys.exit(0)
+
+        # Error en commit
+        if resultado.stderr:
+            click.echo(resultado.stderr, err=True)
+
+        click.echo("\n❌ El commit falló", err=True)
+        sys.exit(resultado.returncode)
+
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except FileNotFoundError:
+        click.echo("❌ Error: Git no está instalado", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error inesperado: {e}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     main()
