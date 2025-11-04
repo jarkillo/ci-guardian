@@ -172,15 +172,20 @@ def install(repo: str, force: bool) -> None:
         # Obtener y validar repo path
         repo_path = _obtener_repo_path(repo)
 
-        # Si force está activo, desinstalar hooks existentes primero
+        # Si force está activo, eliminar hooks existentes primero (CI Guardian o no)
         if force:
-            import contextlib
-
             click.echo("Instalación forzada: eliminando hooks existentes...")
+            hooks_dir = repo_path / ".git" / "hooks"
             for hook_name in HOOKS_ESPERADOS:
-                # Hook no existe o no es de CI Guardian, ignorar
-                with contextlib.suppress(ValueError, FileNotFoundError):
-                    desinstalar_hook(repo_path, hook_name)
+                # Eliminar hook directamente, sea de CI Guardian o de terceros
+                hook_path = hooks_dir / hook_name
+                if hook_path.exists():
+                    try:
+                        hook_path.unlink()
+                        click.echo(f"  ✓ Eliminado: {hook_name}")
+                    except OSError as e:
+                        click.echo(f"  ⚠️  No se pudo eliminar {hook_name}: {e}", err=True)
+                        # Continuar con los demás hooks
 
         # Instalar cada hook
         hooks_instalados = 0
