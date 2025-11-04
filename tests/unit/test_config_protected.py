@@ -240,3 +240,32 @@ hooks:
         assert config.hooks["pre-commit"].enabled is True
         assert "ruff" in config.hooks["pre-commit"].validadores
         assert "black" in config.hooks["pre-commit"].validadores
+
+    def test_debe_serializar_campo_protected_en_to_yaml(self, tmp_path):
+        """Debe incluir el campo protected al guardar configuración con to_yaml()."""
+        # Arrange
+        from ci_guardian.core.config import CIGuardianConfig, ValidadorConfig
+
+        config = CIGuardianConfig(
+            version="0.2.0",
+            validadores={
+                "bandit": ValidadorConfig(enabled=True, timeout=60, protected=True),
+                "ruff": ValidadorConfig(enabled=True, timeout=60, protected=False),
+            },
+        )
+        config_path = tmp_path / ".ci-guardian.yaml"
+
+        # Act
+        config.to_yaml(config_path)
+
+        # Assert: Leer YAML y verificar que protected está presente
+        import yaml
+
+        with open(config_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        assert "validadores" in data
+        assert "bandit" in data["validadores"]
+        assert "ruff" in data["validadores"]
+        assert data["validadores"]["bandit"]["protected"] is True, "Debe serializar protected=True"
+        assert data["validadores"]["ruff"]["protected"] is False, "Debe serializar protected=False"

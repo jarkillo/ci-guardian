@@ -254,6 +254,7 @@ class CIGuardianConfig:
             val_dict: dict[str, Any] = {
                 "enabled": val_config.enabled,
                 "timeout": val_config.timeout,
+                "protected": val_config.protected,  # LIB-33: Incluir protected
             }
             # Añadir options
             val_dict.update(val_config.options)
