@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-11-04
+
 ### Added
 - 🎯 **Pre-Push Hook Implementation (LIB-14)** - 4th Hook Complete
   - Implemented `src/ci_guardian/hooks/pre_push.py` module (originally documented in v0.1.0 but missing)
