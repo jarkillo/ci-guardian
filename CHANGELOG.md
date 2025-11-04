@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 📦 **Venv Validator Module (LIB-32)** - Pre-Hook Environment Validation
+  - New `src/ci_guardian/core/venv_validator.py` module
+  - Function `esta_venv_activo() -> tuple[bool, str]` detects if venv is active
+  - Dual detection method: `VIRTUAL_ENV` env variable (priority) and `sys.prefix != sys.base_prefix`
+  - Clear error messages with activation instructions for Linux/Mac and Windows
+  - Suggests using `ci-guardian commit` command as alternative
+  - 9 comprehensive unit tests with 100% coverage on new module
+  - Tests use mocks for `os.getenv`, `sys.prefix`, `sys.base_prefix`
+  - Edge cases covered: empty strings, paths with spaces, priority testing
+
+- 🪝 **Venv Validation in Hooks (LIB-32)** - UX Improvement
+  - Integrated venv validation as FIRST step in `pre_commit.py`
+  - Integrated venv validation as FIRST step in `pre_push.py`
+  - Blocks hook execution if venv not detected
+  - Prevents confusing `ModuleNotFoundError` messages when users forget to activate venv
+  - Shows clear instructions for activating venv manually
+  - Suggests `ci-guardian commit` command for convenience
+
+- 🔧 **New CLI Command: commit (LIB-32)** - Convenient Commits
+  - New command: `ci-guardian commit -m "message"`
+  - Verifies venv is active before executing `git commit`
+  - Attempts to detect and report venv path automatically
+  - Shows clear instructions if venv not found
+  - Executes git commit safely (shell=False, hardcoded command array)
+  - Better UX for users who forget to activate their environment
+  - Security: No command injection risk
+
+### Security
+- ✅ **LIB-32 Security Audit** - Bandit Clean
+  - Bandit scan: Only LOW severity warnings (expected subprocess imports)
+  - No command injection risk: `shell=False` with hardcoded command arrays
+  - No path traversal issues (module doesn't operate with user paths)
+  - All subprocess calls use timeout and proper error handling
+
+### Documentation
+- 📚 Updated README.md with new `ci-guardian commit` command
+- 📚 Updated CLI command count from 5 to 6
+- 📚 Added `venv_validator.py` to architecture diagram
+- 📚 Updated validator count from 4 to 5
+- 📚 Updated CLAUDE.md with LIB-32 and LIB-33 issues
+- 📚 Updated implementation order in CLAUDE.md
+
 ## [0.2.0] - 2025-11-04
 
 ### Added
