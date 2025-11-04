@@ -436,13 +436,17 @@ def configure(repo: str) -> None:
 )
 def commit(message: str, repo: str) -> None:
     """
-    Crea un commit asegurando que el venv esté activo.
+    Crea un commit verificando que el venv esté activo.
 
-    Este comando es una alternativa conveniente a 'git commit' que verifica
-    y activa automáticamente el venv si es necesario antes de ejecutar
-    los hooks pre-commit.
+    Este comando valida que haya un venv activo ANTES de ejecutar git commit.
+    Si no hay venv activo, muestra instrucciones claras para activarlo y
+    cancela el commit para prevenir errores en los hooks.
+
+    IMPORTANTE: Este comando NO activa el venv automáticamente (técnicamente
+    imposible desde un subprocess). El usuario debe activar el venv manualmente.
 
     Ejemplo:
+        source venv/bin/activate  # Activar primero
         ci-guardian commit -m "feat: add new feature"
 
     Implementado en LIB-32.
@@ -459,24 +463,38 @@ def commit(message: str, repo: str) -> None:
         venv_ok, mensaje = esta_venv_activo()
 
         if not venv_ok:
-            click.echo("❌ No hay entorno virtual activo. El commit podría fallar.", err=True)
-            click.echo("\nActivando venv automáticamente...", err=True)
+            click.echo("❌ ERROR: No hay entorno virtual activo", err=True)
+            click.echo(
+                "\nLos hooks de CI Guardian requieren un venv activo para ejecutar "
+                "Ruff, Black, Bandit y pytest.",
+                err=True,
+            )
 
-            # Intentar detectar y activar venv
+            # Intentar detectar venv para dar instrucciones específicas
             from ci_guardian.core.venv_manager import detectar_venv
 
             venv_path = detectar_venv(repo_path)
-            if not venv_path:
-                click.echo("\n⚠️  No se pudo detectar un venv en el proyecto.", err=True)
-                click.echo("Por favor, activa el venv manualmente:\n", err=True)
-                click.echo("  Linux/Mac:   source venv/bin/activate", err=True)
-                click.echo("  Windows:     venv\\Scripts\\activate", err=True)
-                sys.exit(1)
+            if venv_path:
+                click.echo(f"\n✓ Venv detectado en: {venv_path}", err=True)
+                click.echo("\n📋 Para activar el venv:", err=True)
+                if platform.system() == "Windows":
+                    click.echo(f"  {venv_path}\\Scripts\\activate", err=True)
+                else:
+                    click.echo(f"  source {venv_path}/bin/activate", err=True)
+            else:
+                click.echo("\n⚠️  No se detectó un venv en el proyecto.", err=True)
+                click.echo("\n📋 Crea y activa un venv:", err=True)
+                click.echo("  python -m venv venv", err=True)
+                if platform.system() == "Windows":
+                    click.echo("  venv\\Scripts\\activate", err=True)
+                else:
+                    click.echo("  source venv/bin/activate", err=True)
 
-            click.echo(f"✓ Venv detectado en: {venv_path}")
+            click.echo('\n💡 Luego ejecuta nuevamente: ci-guardian commit -m "..."', err=True)
+            sys.exit(1)
 
-        # Ejecutar git commit
-        click.echo(f'\n🔨 Ejecutando: git commit -m "{message}"')
+        # Venv está activo, proceder con commit
+        click.echo(f'🔨 Ejecutando: git commit -m "{message}"')
 
         resultado = subprocess.run(
             ["git", "commit", "-m", message],
