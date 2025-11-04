@@ -129,8 +129,10 @@ jobs:
           source /tmp/smoke-venv/bin/activate
           cd /tmp/smoke-test-repo
 
-          # Crear archivo Python de prueba
-          echo "print('smoke test')" > test.py
+          # Crear archivo Python de prueba (formato compatible con Black)
+          cat > test.py << 'EOF'
+          print("smoke test")
+          EOF
           git add test.py
 
           # Ejecutar commit (trigger pre-commit, commit-msg, post-commit hooks)
