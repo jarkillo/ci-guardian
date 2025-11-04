@@ -16,6 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ci_guardian.core.venv_validator import esta_venv_activo
 from ci_guardian.validators.code_quality import ejecutar_black, ejecutar_ruff
 from ci_guardian.validators.no_verify_blocker import generar_token_seguro, guardar_token
 from ci_guardian.validators.security import ejecutar_bandit
@@ -76,6 +77,7 @@ def main() -> int:
     Ejecuta validaciones pre-commit.
 
     Flujo:
+    0. Verificar que hay venv activo (LIB-32)
     1. Obtener archivos Python en stage
     2. Ejecutar Ruff
     3. Ejecutar Black
@@ -98,6 +100,18 @@ def main() -> int:
         repo_path = Path.cwd()
 
         print("🔍 CI Guardian pre-commit hook ejecutándose...")
+
+        # PASO 0: Verificar venv activo (LIB-32)
+        print("\n📦 Verificando entorno virtual...")
+        venv_ok, mensaje = esta_venv_activo()
+        if not venv_ok:
+            print(mensaje, file=sys.stderr)
+            print(
+                "\n💡 TIP: Puedes usar 'ci-guardian commit' para commits convenientes",
+                file=sys.stderr,
+            )
+            return 1
+        print(mensaje)
         print("")
 
         # 1. Obtener archivos Python en stage
