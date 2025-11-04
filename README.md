@@ -68,9 +68,9 @@ ci-guardian install
 
 ### ✨ Todas las Funcionalidades Implementadas
 
-- ✅ **5 comandos CLI**: install, uninstall, status, check, configure
+- ✅ **6 comandos CLI**: install, uninstall, status, check, configure, commit
 - ✅ **4 hooks Git**: pre-commit, commit-msg, post-commit, pre-push
-- ✅ **4 validadores**: Code quality, Security, Authorship, Anti --no-verify
+- ✅ **5 validadores**: Venv check, Code quality, Security, Authorship, Anti --no-verify
 - ✅ **1 runner**: GitHub Actions local (act con fallback)
 - ✅ **Soporte multiplataforma**: Linux, macOS, Windows
 - ✅ **Seguridad auditada**: 0 vulnerabilidades HIGH/CRITICAL
@@ -184,6 +184,9 @@ ci-guardian check
 
 # Actualizar configuración
 ci-guardian configure
+
+# Crear commit asegurando venv activo (LIB-32)
+ci-guardian commit -m "feat: add new feature"
 ```
 
 ## 🧪 Testing
@@ -206,10 +209,11 @@ pytest -m "not linux"    # En Windows
 
 ```
 src/ci_guardian/
-├── cli.py                      # CLI con Click (5 comandos)
+├── cli.py                      # CLI con Click (6 comandos)
 ├── core/
 │   ├── installer.py            # Instalación de hooks (LIB-1)
-│   └── venv_manager.py         # Detección/creación de venv (LIB-2)
+│   ├── venv_manager.py         # Detección/creación de venv (LIB-2)
+│   └── venv_validator.py       # Validación de venv activo (LIB-32)
 ├── validators/
 │   ├── code_quality.py         # Ruff & Black (LIB-4)
 │   ├── security.py             # Bandit & Safety (LIB-5)
