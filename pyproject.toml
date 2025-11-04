@@ -4,20 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ci-guardian"
-version = "0.1.0"
+version = "0.2.0"
 description = "Git hooks automation for Claude Code projects - enforces code quality, security, and prevents hook bypass"
 readme = "README.md"
 authors = [
-    {name = "Jarko"}
+    {name = "Jarko", email = "jarko@example.com"}
 ]
-license = {text = "MIT"}
-requires-python = ">=3.9"
+license = "MIT"
+requires-python = ">=3.10"
+keywords = [
+    "git-hooks",
+    "pre-commit",
+    "code-quality",
+    "security",
+    "claude-code",
+    "automation",
+    "linting",
+    "formatting",
+    "ci-cd",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -56,10 +65,10 @@ act = [
 ci-guardian = "ci_guardian.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/jarko/ci-guardian"
-Repository = "https://github.com/jarko/ci-guardian"
-Issues = "https://github.com/jarko/ci-guardian/issues"
-Documentation = "https://github.com/jarko/ci-guardian#readme"
+Homepage = "https://github.com/jarkillo/ci-guardian"
+Repository = "https://github.com/jarkillo/ci-guardian"
+Issues = "https://github.com/jarkillo/ci-guardian/issues"
+Documentation = "https://github.com/jarkillo/ci-guardian#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -70,7 +79,7 @@ ci_guardian = ["hooks/**/*", "templates/**/*"]
 # Ruff configuration - Modern Python linter
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = [
@@ -109,7 +118,7 @@ ignore = [
 # Black configuration - Code formatter
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312", "py313"]
+target-version = ["py310", "py311", "py312", "py313"]
 skip-string-normalization = false
 
 # Bandit configuration - Security linter
@@ -145,7 +154,7 @@ markers = [
 
 # MyPy configuration - Type checking
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

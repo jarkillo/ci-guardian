@@ -1,3 +1,4 @@
+# Continuando desde línea 748...
 # CI Guardian - Documentación Interna para Claude Code
 
 > **Última actualización**: 2025-10-30
@@ -50,9 +51,7 @@ ci-library/
 │   ├── core/                         # Funcionalidad core
 │   │   ├── __init__.py
 │   │   ├── installer.py              # Instalador de hooks (LIB-1)
-│   │   ├── venv_manager.py           # Gestión de venv (LIB-2)
-│   │   ├── hook_runner.py            # Ejecutor de validaciones
-│   │   └── config.py                 # Gestión de configuración
+│   │   └── venv_manager.py           # Gestión de venv (LIB-2)
 │   ├── validators/                   # Validadores
 │   │   ├── __init__.py
 │   │   ├── code_quality.py           # Ruff + Black (LIB-4)
@@ -97,8 +96,6 @@ venv/                                 # Python 3.12.12
 #### 1. **core/** - Funcionalidad Base
 - `installer.py`: Instala/desinstala hooks en `.git/hooks/`
 - `venv_manager.py`: Detecta/crea entornos virtuales (Linux/Windows)
-- `hook_runner.py`: Orquesta la ejecución de validadores en hooks
-- `config.py`: Carga configuración desde `.ci-guardian.yaml`
 
 #### 2. **validators/** - Validadores de Calidad
 - `code_quality.py`: Ejecuta Ruff (linter) y Black (formatter)
@@ -361,10 +358,12 @@ git commit -m "refactor(core): extract hook validation logic to separate functio
 - **LIB-4**: Ruff and Black executor
 - **LIB-5**: Security audit (Bandit + Safety)
 - **LIB-6**: Authorship validator (anti Claude co-author)
+- **LIB-33**: Sistema de configuración protegida (.ci-guardian.yaml con hash SHA256)
 
 ### Issues Medium (Prioridad 3)
 
 - **LIB-7**: GitHub Actions executor local (act con fallback)
+- **LIB-32**: Verificación de venv activo pre-hook
 
 ### Orden de Implementación Recomendado
 
@@ -373,10 +372,12 @@ git commit -m "refactor(core): extract hook validation logic to separate functio
 3. **LIB-4** (Ruff/Black) → Validación básica de calidad
 4. **LIB-3** (Anti --no-verify) → Feature crítica de seguridad
 5. **LIB-8** (CLI) → Interfaz de usuario
-6. **LIB-6** (Authorship) → Validación de autoría
-7. **LIB-5** (Security) → Auditoría completa
-8. **LIB-7** (GH Actions) → Feature avanzada
-9. **LIB-9** (Tests) → Continuo durante todo el desarrollo
+6. **LIB-32** (Venv validator) → Previene errores confusos sin venv activo
+7. **LIB-33** (Config protegida) → Permite deshabilitar validadores NO críticos de forma segura
+8. **LIB-6** (Authorship) → Validación de autoría
+9. **LIB-5** (Security) → Auditoría completa
+10. **LIB-7** (GH Actions) → Feature avanzada
+11. **LIB-9** (Tests) → Continuo durante todo el desarrollo
 
 ---
 
@@ -746,198 +747,17 @@ def _funcion_interna():
     pass
 ```
 
+
 ### Type Hints
 
-**IMPORTANTE**: Usar **sintaxis moderna de Python 3.12+** para type hints.
+**Usar sintaxis moderna Python 3.12+**:
+- `list[int]` en lugar de `List[int]`
+- `str | None` en lugar de `Optional[str]`
+- `type HookName = str` para aliases
+- `@override` para sobrescribir métodos
+- `collections.abc` en lugar de `typing`
 
-#### Sintaxis Básica (Python 3.12+)
-
-```python
-from pathlib import Path
-from collections.abc import Sequence  # Preferir collections.abc sobre typing
-
-# ✅ Python 3.12: Usar | para Optional (Union)
-def instalar_hook(
-    repo_path: Path,
-    hook_name: str,
-    contenido: str | None = None  # En lugar de Optional[str]
-) -> None:
-    """Instala un hook."""
-    pass
-
-# ✅ Python 3.12: list, dict, tuple (minúsculas) en lugar de List, Dict, Tuple
-def ejecutar_comando(
-    comando: list[str],  # En lugar de List[str]
-    env: dict[str, str] | None = None  # En lugar de Optional[Dict[str, str]]
-) -> tuple[int, str, str]:  # En lugar de Tuple[int, str, str]
-    """Retorna (código, stdout, stderr)."""
-    pass
-
-# ✅ Python 3.12: Type aliases con keyword 'type'
-type HookName = str
-type HookContent = str
-type PathLike = Path | str
-
-def procesar_hook(
-    nombre: HookName,
-    contenido: HookContent,
-    ruta: PathLike
-) -> bool:
-    """Procesa un hook."""
-    pass
-```
-
-#### Generics Modernos (PEP 695)
-
-```python
-# ❌ ANTIGUO (Python <3.12)
-from typing import TypeVar, Generic
-
-T = TypeVar('T')
-
-class Container(Generic[T]):
-    def __init__(self, valor: T) -> None:
-        self.valor = valor
-
-# ✅ MODERNO (Python 3.12+)
-class Container[T]:
-    def __init__(self, valor: T) -> None:
-        self.valor = valor
-
-# ✅ Funciones genéricas
-def obtener_primero[T](items: list[T]) -> T | None:
-    """Obtiene el primer elemento de una lista."""
-    return items[0] if items else None
-```
-
-#### Override Decorator (PEP 698)
-
-```python
-from typing import override
-
-class ValidadorBase:
-    def validar(self, dato: str) -> bool:
-        return True
-
-class ValidadorCustom(ValidadorBase):
-    @override  # Valida que estamos sobrescribiendo un método existente
-    def validar(self, dato: str) -> bool:
-        return len(dato) > 0
-```
-
-#### Collections.abc vs typing
-
-```python
-# ❌ DEPRECADO en Python 3.9+
-from typing import List, Dict, Set, Tuple, Sequence, Iterable
-
-# ✅ MODERNO (Python 3.12+)
-from collections.abc import Sequence, Iterable, Mapping
-
-def procesar_archivos(
-    archivos: Sequence[Path],  # Acepta list, tuple, etc.
-    opciones: Mapping[str, str]  # Acepta dict y otros mappings
-) -> Iterable[str]:  # Retorna cualquier iterable
-    """Procesa archivos."""
-    pass
-
-# Para tipos básicos, usar minúsculas built-in
-def simple(
-    nums: list[int],
-    config: dict[str, bool],
-    valores: set[str]
-) -> tuple[int, int]:
-    pass
-```
-
-#### Type Narrowing y Type Guards
-
-```python
-from typing import TypeGuard
-
-def es_path(obj: object) -> TypeGuard[Path]:
-    """Type guard para verificar si un objeto es Path."""
-    return isinstance(obj, Path)
-
-def procesar(entrada: str | Path) -> str:
-    if es_path(entrada):
-        # Aquí el type checker sabe que entrada es Path
-        return str(entrada.resolve())
-    else:
-        # Aquí el type checker sabe que entrada es str
-        return entrada
-```
-
-#### Type Hints para Callbacks
-
-```python
-from collections.abc import Callable
-
-# ✅ MODERNO
-type ValidadorCallback = Callable[[str], bool]
-type ProcessorCallback = Callable[[Path, dict[str, str]], None]
-
-def ejecutar_con_validacion(
-    dato: str,
-    validador: ValidadorCallback
-) -> bool:
-    """Ejecuta validación usando callback."""
-    return validador(dato)
-```
-
-#### Literal Types para Constantes
-
-```python
-from typing import Literal
-
-# Literal types para valores específicos
-type Sistema = Literal["Linux", "Windows", "Darwin"]
-type HookType = Literal["pre-commit", "pre-push", "post-commit", "pre-rebase"]
-
-def detectar_sistema() -> Sistema:
-    """Detecta el sistema operativo."""
-    import platform
-    return platform.system()  # type: ignore[return-value]
-
-def validar_hook_name(name: str) -> HookType:
-    """Valida el nombre del hook."""
-    if name not in {"pre-commit", "pre-push", "post-commit", "pre-rebase"}:
-        raise ValueError(f"Hook inválido: {name}")
-    return name  # type: ignore[return-value]
-```
-
-#### Self Type para Method Chaining
-
-```python
-from typing import Self
-
-class Builder:
-    def __init__(self) -> None:
-        self.config: dict[str, str] = {}
-
-    def add_option(self, key: str, value: str) -> Self:
-        """Añade una opción y retorna self para chaining."""
-        self.config[key] = value
-        return self
-
-    def build(self) -> dict[str, str]:
-        """Construye la configuración final."""
-        return self.config
-
-# Uso con method chaining
-config = Builder().add_option("key1", "val1").add_option("key2", "val2").build()
-```
-
-#### Reglas para CI Guardian
-
-1. **SIEMPRE usar built-in types en minúsculas**: `list`, `dict`, `set`, `tuple`
-2. **SIEMPRE usar `|` en lugar de `Optional` o `Union`**
-3. **SIEMPRE usar `type` keyword para type aliases**
-4. **USAR `@override`** cuando sobrescribas métodos de clases base
-5. **PREFERIR `collections.abc`** sobre `typing` para abstracciones (Sequence, Iterable, Mapping)
-6. **USAR generics modernos** con sintaxis `[T]` directamente en la clase/función
-7. **USAR `Literal`** para conjuntos fijos de valores
-8. **USAR `Self`** para method chaining
+**Ver guía completa**: [docs/python-style.md](docs/python-style.md)
 
 ### Docstrings
 
@@ -1195,6 +1015,168 @@ Antes de considerar completa una funcionalidad:
 
 ---
 
+## 🔄 Workflow de Commits y Releases
+
+### Antes de Cada Commit
+
+**IMPORTANTE**: Antes de crear cualquier commit, Claude Code debe verificar y actualizar la documentación relevante.
+
+#### Checklist Pre-Commit Obligatorio
+
+1. **Verificar cambios en interfaz pública**
+   ```bash
+   # Si modificaste CLI, core API, o funcionalidad pública
+   git diff --cached | grep -E "(def |class |@click)"
+   ```
+   - Si hay cambios: Actualizar `README.md` con nuevos comandos/APIs
+   - Actualizar ejemplos de uso si cambiaron
+   - Actualizar badges si cambia versión o tests
+
+2. **Verificar cambios en arquitectura**
+   ```bash
+   # Si añadiste/modificaste módulos, estructura, o patrones
+   git diff --cached | grep -E "(^new file|^rename|^delete)"
+   ```
+   - Si hay cambios: Actualizar `CLAUDE.md` sección "Arquitectura del Proyecto"
+   - Actualizar diagramas de estructura si aplicable
+   - Actualizar orden de implementación si cambia
+
+3. **Actualizar CHANGELOG.md**
+   - SIEMPRE añadir entrada en sección `[Unreleased]`
+   - Usar categorías: `Added`, `Changed`, `Fixed`, `Removed`, `Security`
+   - Incluir referencia al issue de Linear (ej: `LIB-18`)
+
+4. **Verificar docstrings**
+   ```bash
+   # Verificar que funciones nuevas/modificadas tienen docstrings
+   ruff check --select D
+   ```
+
+#### Ejemplo de Workflow Pre-Commit
+
+```bash
+# 1. Claude Code termina implementación
+# 2. ANTES de git add, revisar cambios:
+git diff src/
+
+# 3. Identificar si hay cambios en:
+#    - CLI (cli.py) → Actualizar README.md sección "Uso"
+#    - Core API (core/*.py) → Actualizar README.md sección "API"
+#    - Arquitectura → Actualizar CLAUDE.md
+#    - Hooks → Actualizar QUICKSTART.md
+
+# 4. Actualizar documentación pertinente
+vi README.md  # o CLAUDE.md, o ambos
+
+# 5. Actualizar CHANGELOG.md
+vi CHANGELOG.md
+# Añadir en [Unreleased]:
+# ### Added
+# - Smoke tests in CI/CD pipeline before PyPI publish (LIB-18)
+
+# 6. Ahora SÍ hacer commit incluyendo documentación
+git add src/ README.md CHANGELOG.md
+git commit -m "feat(ci): add smoke tests before PyPI publish
+
+- Add smoke-test job in .github/workflows/publish.yml
+- Tests install from wheel and validate full workflow
+- Blocks publication if smoke tests fail
+- Closes LIB-18"
+```
+
+### Antes de Cada Release
+
+**CRÍTICO**: Antes de publicar a PyPI, SIEMPRE ejecutar smoke tests localmente.
+
+#### Checklist Pre-Release Obligatorio
+
+1. **Ejecutar smoke tests locales**
+   ```bash
+   # Build del paquete
+   python -m build --clean
+
+   # Crear venv limpio para smoke test
+   python -m venv /tmp/release-smoke-test
+   source /tmp/release-smoke-test/bin/activate
+
+   # Instalar desde wheel (NO editable)
+   pip install dist/ci_guardian-*.whl
+
+   # Smoke tests básicos
+   ci-guardian --version
+   ci-guardian --help
+
+   # Smoke test completo: crear repo y probar workflow
+   cd /tmp
+   git init smoke-repo
+   cd smoke-repo
+   git config user.name "Release Tester"
+   git config user.email "release@test.com"
+
+   # Instalar hooks
+   ci-guardian install
+
+   # Verificar 100% instalado
+   ci-guardian status | grep "100%"
+
+   # Test commit
+   echo "print('release smoke test')" > test.py
+   git add test.py
+   git commit -m "test: release smoke test"
+
+   echo "✅ Smoke tests pasados - Safe to release"
+   ```
+
+2. **Actualizar versión en pyproject.toml**
+   ```toml
+   [project]
+   version = "0.1.2"  # Incrementar según semantic versioning
+   ```
+
+3. **Actualizar CHANGELOG.md**
+   ```markdown
+   ## [0.1.2] - 2025-11-02
+   ### Added
+   - Smoke tests in CI/CD pipeline (LIB-18)
+   - Documentation update workflow (LIB-10)
+
+   ### Fixed
+   - Bug critical en pre-push hook (LIB-16)
+   ```
+
+4. **Crear tag y release**
+   ```bash
+   git tag -a v0.1.2 -m "Release v0.1.2: Smoke tests + Doc workflow"
+   git push origin v0.1.2
+   ```
+
+5. **Workflow automático de CI/CD**
+   - GitHub Actions detecta tag `v*`
+   - Ejecuta job `build`
+   - Ejecuta job `smoke-test` (GATE DE CALIDAD)
+   - Solo si smoke tests pasan → `publish-pypi`
+   - Publica a PyPI con Trusted Publisher
+
+#### Por Qué Smoke Tests Son Críticos
+
+**Problema real (Post-Mortem v0.1.0)**:
+- Se publicó v0.1.0 a PyPI
+- Bug crítico: `ModuleNotFoundError` en `pre-push` hook
+- Usuarios instalaron paquete roto
+- Se requirió hotfix urgente v0.1.1
+
+**Root Cause**:
+- NO se instaló el paquete desde `dist/` antes de publicar
+- Solo se probó con `pip install -e .` (editable install)
+- Bug solo aparecía en instalación real desde wheel
+
+**Solución**:
+- Smoke tests SIEMPRE instalan desde wheel (NO editable)
+- Prueban workflow completo: install → commit → push
+- Bloquean publicación si algo falla
+
+---
+
 ## 🔄 Ciclo de Vida del Proyecto
 
 ```
@@ -1266,7 +1248,114 @@ Antes de considerar completa una funcionalidad:
 
 ---
 
-**Fin de CLAUDE.md**
+## 📋 Decisiones Arquitecturales Postponed
 
-_Si tienes dudas sobre algún aspecto del proyecto, consulta esta documentación._
-_Para empezar a desarrollar, sigue el Workflow Completo (sección correspondiente)._
+Esta sección documenta decisiones de **NO implementar** ciertas abstracciones/módulos
+hasta que se cumplan triggers específicos que justifiquen su existencia.
+
+### Por qué NO implementar `core/hook_runner.py` (LIB-23)
+
+**Decisión**: Mantener orquestación de validadores **inline** en cada hook.
+
+**Contexto**:
+- Solo 2 de 4 hooks (pre-commit, pre-push) necesitan orquestación actualmente
+- post-commit y commit-msg son simples y no requieren múltiples validadores
+- pre-commit y pre-push tienen lógica de presentación muy diferente
+
+**Rationale (Principios Aplicados)**:
+
+1. **Regla de Tres** (DRY razonable):
+   - "No abstraer hasta tener 3+ casos similares"
+   - Estado actual: Solo 2 casos de orquestación, no 3
+
+2. **YAGNI** (You Aren't Gonna Need It):
+   - No hay planes inmediatos de añadir 5+ validadores adicionales
+   - Premature abstraction añade complejidad sin beneficio claro
+
+3. **Pragmatismo**:
+   - Costo de abstracción: ~4 horas implementación + tests
+   - Beneficio actual: Marginal (solo 2 casos, lógica diferente)
+   - Riesgo: Abstracción incorrecta que requiera refactor luego
+
+**Estado Actual** (v0.2.0):
+```python
+# src/ci_guardian/hooks/pre_commit.py - Orquestación inline (191 líneas)
+def main() -> int:
+    # 1. Ruff
+    ruff_ok, msg = ejecutar_ruff(...)
+    if not ruff_ok: return 1
+
+    # 2. Black
+    black_ok, msg = ejecutar_black(...)
+    if not black_ok: return 1
+
+    # 3. Bandit
+    bandit_ok, results = ejecutar_bandit(...)
+    if not bandit_ok: return 1
+
+    # 4. Token
+    generar_token_seguro()
+
+# src/ci_guardian/hooks/pre_push.py - Orquestación configurable (170 líneas)
+def main() -> int:
+    config = cargar_configuracion()
+    validadores = config.get("validadores", ["tests"])
+
+    for validador in validadores:
+        if validador == "tests":
+            exito, msg = ejecutar_pytest()
+        elif validador == "github-actions":
+            exito, msg = ejecutar_github_actions()
+```
+
+**Triggers para Reconsiderar** (cuándo crear `core/hook_runner.py`):
+
+1. **Regla de Tres cumplida**: 3er hook que necesite orquestación de múltiples validadores
+
+2. **Duplicación significativa**: >50% de código duplicado entre hooks (actualmente <30%)
+
+3. **Complejidad individual**: Algún hook main() supera 300 líneas (actualmente: pre_commit 191, pre_push 170)
+
+4. **Nueva feature**: Sistema de plugins/validadores externos que requiera orquestación común
+
+5. **Configuración unificada**: Si se implementa `core/config.py` (LIB-24) con esquema común de orquestación
+
+**Revisión Periódica**:
+- Al completar LIB-24 (core/config.py): Evaluar si config unificado justifica runner unificado
+- Cada vez que se añada un nuevo hook con validadores
+- Antes de v1.0.0: Revisión arquitectural completa
+
+**Referencias**:
+- Issue: LIB-23
+- Consulta mentor: Python-mentor agent (2025-11-02)
+- Código actual: `src/ci_guardian/hooks/pre_commit.py:89-95`, `pre_push.py:121-127`
+
+---
+
+## 🚨 Lessons Learned - Post-Mortems
+
+Documentación de bugs críticos, análisis de causa raíz y medidas preventivas.
+
+**Ver análisis completo**: [docs/lessons-learned.md](docs/lessons-learned.md)
+
+**Resumen**:
+- Post-Mortem #1: ModuleNotFoundError pre-push (v0.1.0 → v0.1.1)
+  - Causa: Documentación prometía 4 hooks, solo 3 existían
+  - Prevención: 4 reglas obligatorias (ver docs)
+
+---
+
+## 📋 Checklist Pre-Release
+
+**Ver checklist completo**: [docs/release-checklist.md](docs/release-checklist.md)
+
+**Crítico antes de publicar a PyPI**:
+1. Todos los tests pasan (358 tests)
+2. Coverage ≥73%
+3. **Smoke tests desde wheel** (NO -e)
+4. `git commit` funciona
+5. `git push` funciona (previene bug v0.1.0)
+
+---
+
+**Fin de CLAUDE.md**

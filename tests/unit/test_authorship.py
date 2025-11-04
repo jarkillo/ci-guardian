@@ -161,22 +161,246 @@ Co-Authored-By: Bob Wilson <bob@example.com>
         # Assert
         assert resultado is False, "Debe aceptar múltiples humanos sin Claude"
 
-    def test_debe_aceptar_mencion_claude_en_cuerpo_mensaje(self):
-        """Debe aceptar mención de Claude en el cuerpo del mensaje (no como co-author)."""
+    def test_debe_rechazar_developed_with_claude(self):
+        """Debe rechazar mensajes con 'developed with Claude'."""
         # Arrange
         mensaje = """feat: implement feature
 
-This feature was developed with assistance from Claude Code.
+This feature was developed with Claude Code.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is True, "Debe rechazar 'developed with Claude'"
+
+    def test_debe_rechazar_claude_helped(self):
+        """Debe rechazar mensajes con 'Claude helped'."""
+        # Arrange
+        mensaje = """feat: implement feature
+
 Claude helped review the implementation.
 """
 
         # Act
-        from ci_guardian.validators.authorship import contiene_coauthor_claude
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
 
-        resultado = contiene_coauthor_claude(mensaje)
+        resultado = contiene_atribucion_claude(mensaje)
 
         # Assert
-        assert resultado is False, "Debe permitir mencionar a Claude en el cuerpo"
+        assert resultado is True, "Debe rechazar 'Claude helped'"
+
+    def test_debe_rechazar_thanks_to_claude(self):
+        """Debe rechazar mensajes con 'thanks to Claude'."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+Thanks to Claude for the assistance!
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is True, "Debe rechazar 'thanks to Claude'"
+
+    def test_debe_rechazar_built_with_claude(self):
+        """Debe rechazar mensajes con 'built with Claude'."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+Built with Claude AI assistance.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is True, "Debe rechazar 'built with Claude'"
+
+    def test_debe_rechazar_assistance_from_claude(self):
+        """Debe rechazar mensajes con 'assistance from Claude'."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+This was created with assistance from Claude.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is True, "Debe rechazar 'assistance from Claude'"
+
+    def test_debe_rechazar_reviewed_by_claude(self):
+        """Debe rechazar mensajes con 'reviewed by Claude'."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+Reviewed by Claude before committing.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is True, "Debe rechazar 'reviewed by Claude'"
+
+    def test_debe_rechazar_created_with_claude(self):
+        """Debe rechazar mensajes con 'created with Claude'."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+Created with Claude Code editor.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is True, "Debe rechazar 'created with Claude'"
+
+    def test_debe_aceptar_mencion_herramienta_claude_code(self):
+        """Debe aceptar mención de 'Claude Code' como herramienta sin atribución."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+Using Claude Code editor for this project.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is False, "Debe permitir mencionar la herramienta Claude Code"
+
+    def test_debe_aceptar_urls_claude_ai(self):
+        """Debe aceptar URLs con claude.ai en el cuerpo."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+For more info see https://claude.ai or https://www.anthropic.com/claude
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is False, "Debe permitir URLs con claude.ai"
+
+    def test_debe_aceptar_documentacion_tecnica(self):
+        """Debe aceptar referencias a documentación técnica de Claude."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+See Claude API docs for configuration details.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is False, "Debe permitir referencias a docs técnicos"
+
+    def test_debe_rechazar_atribucion_case_insensitive(self):
+        """Debe rechazar atribuciones independientemente de mayúsculas/minúsculas."""
+        # Arrange
+        casos = [
+            "developed with CLAUDE",
+            "CLAUDE helped with this",
+            "Thanks To claude for help",
+            "buiLt WiTh ClAuDe",
+        ]
+
+        # Act & Assert
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        for caso in casos:
+            mensaje = f"feat: implement feature\n\n{caso}\n"
+            resultado = contiene_atribucion_claude(mensaje)
+            assert resultado is True, f"Debe rechazar (case-insensitive): {caso}"
+
+    def test_debe_rechazar_variaciones_con_antropic(self):
+        """Debe rechazar variaciones con 'Anthropic' en lugar de 'Claude'."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+Built with Anthropic AI assistance.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is True, "Debe rechazar atribuciones a Anthropic"
+
+    def test_debe_aceptar_nombres_similares(self):
+        """Debe aceptar nombres similares como Claudette, Claudia, etc."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+Thanks to Claudette Johnson for the code review!
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is False, "Debe permitir nombres similares pero diferentes"
+
+    def test_debe_rechazar_contribucion_de_claude(self):
+        """Debe rechazar 'contribution from Claude'."""
+        # Arrange
+        mensaje = """feat: implement feature
+
+This includes contributions from Claude.
+"""
+
+        # Act
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        resultado = contiene_atribucion_claude(mensaje)
+
+        # Assert
+        assert resultado is True, "Debe rechazar 'contribution from Claude'"
+
+    def test_debe_rechazar_claude_generated(self):
+        """Debe rechazar 'Claude generated' o 'generated by Claude'."""
+        # Arrange
+        casos = [
+            "feat: feature\n\nClaude generated this code.\n",
+            "feat: feature\n\nGenerated by Claude AI.\n",
+        ]
+
+        # Act & Assert
+        from ci_guardian.validators.authorship import contiene_atribucion_claude
+
+        for caso in casos:
+            resultado = contiene_atribucion_claude(caso)
+            assert resultado is True, f"Debe rechazar: {caso}"
 
     def test_debe_aceptar_mensaje_sin_coautores(self):
         """Debe aceptar mensaje sin ningún co-autor."""

@@ -10,40 +10,6 @@ import subprocess
 from pathlib import Path
 
 
-def _filtrar_archivos_python(archivos: list[Path]) -> list[Path]:
-    """
-    Filtra solo archivos .py que existan y no tengan path traversal.
-
-    Args:
-        archivos: Lista de archivos a filtrar
-
-    Returns:
-        Lista de archivos Python válidos
-
-    Raises:
-        ValueError: Si se detecta path traversal (..)
-    """
-    archivos_validos = []
-    for archivo in archivos:
-        # Rechazar path traversal (seguridad crítica)
-        if ".." in str(archivo):
-            raise ValueError(
-                f"path traversal detectado en '{archivo}': ruta inválida fuera del proyecto"
-            )
-
-        # Solo archivos .py
-        if archivo.suffix != ".py":
-            continue
-
-        # Solo si existe
-        if not archivo.exists():
-            continue
-
-        archivos_validos.append(archivo)
-
-    return archivos_validos
-
-
 def ejecutar_ruff(archivos: list[Path], fix: bool = False) -> tuple[bool, str]:
     """
     Ejecuta Ruff sobre archivos Python.
@@ -69,9 +35,13 @@ def ejecutar_ruff(archivos: list[Path], fix: bool = False) -> tuple[bool, str]:
     if not archivos:
         return True, "Sin archivos para validar"
 
-    # Filtrar archivos válidos
+    # Filtrar archivos válidos usando función centralizada
+    from ci_guardian.validators.file_utils import filtrar_archivos_python_seguros
+
     try:
-        archivos_validos = _filtrar_archivos_python(archivos)
+        archivos_validos = filtrar_archivos_python_seguros(
+            archivos, repo_path=Path.cwd(), validar_existencia=True
+        )
     except ValueError as e:
         # Path traversal detectado
         raise ValueError(f"Error de validación: {e}") from e
@@ -137,9 +107,13 @@ def ejecutar_black(archivos: list[Path], check: bool = True) -> tuple[bool, str]
     if not archivos:
         return True, "Sin archivos para validar"
 
-    # Filtrar archivos válidos
+    # Filtrar archivos válidos usando función centralizada
+    from ci_guardian.validators.file_utils import filtrar_archivos_python_seguros
+
     try:
-        archivos_validos = _filtrar_archivos_python(archivos)
+        archivos_validos = filtrar_archivos_python_seguros(
+            archivos, repo_path=Path.cwd(), validar_existencia=True
+        )
     except ValueError as e:
         # Path traversal detectado
         raise ValueError(f"Error de validación: {e}") from e
