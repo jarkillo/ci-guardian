@@ -383,11 +383,17 @@ def check(repo: str) -> None:
 
 @main.command()
 @click.option("--repo", default=".", help="Ruta al repositorio Git (default: directorio actual)")
-def configure(repo: str) -> None:
+@click.option(
+    "--regenerate-hash",
+    is_flag=True,
+    help="Regenera el hash de integridad del archivo .ci-guardian.yaml (LIB-33)",
+)
+def configure(repo: str, regenerate_hash: bool) -> None:
     """
-    Crea archivo de configuración .ci-guardian.yaml.
+    Crea archivo de configuración .ci-guardian.yaml o regenera su hash de integridad.
 
-    Genera configuración por defecto para el proyecto.
+    Genera configuración por defecto para el proyecto o actualiza el hash SHA256
+    de integridad después de editar manualmente el archivo.
     """
     try:
         # Obtener y validar repo path
@@ -396,6 +402,22 @@ def configure(repo: str) -> None:
         # Path del archivo de configuración
         config_path = repo_path / ".ci-guardian.yaml"
 
+        # Modo: Regenerar hash de integridad
+        if regenerate_hash:
+            if not config_path.exists():
+                click.echo(
+                    f"❌ Error: No existe archivo de configuración en {config_path}", err=True
+                )
+                sys.exit(1)
+
+            from ci_guardian.core.config import regenerar_hash_config
+
+            regenerar_hash_config(config_path)
+            click.echo(f"✓ Hash de integridad regenerado en {config_path}")
+            click.echo("\n💡 Ahora puedes hacer commit del archivo actualizado")
+            sys.exit(0)
+
+        # Modo normal: Crear configuración
         # Si existe, pedir confirmación
         if config_path.exists() and not click.confirm(
             "El archivo de configuración ya existe. ¿Sobrescribir?"
