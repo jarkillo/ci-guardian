@@ -24,11 +24,13 @@ class ValidadorConfig:
     Attributes:
         enabled: Si el validador está habilitado
         timeout: Tiempo máximo de ejecución en segundos
+        protected: Si está protegido contra deshabilitación programática (LIB-33)
         options: Opciones personalizadas del validador
     """
 
     enabled: bool = True
     timeout: int = 60
+    protected: bool = False
     options: dict[str, str | int | bool] = field(default_factory=dict)
 
 
@@ -87,6 +89,34 @@ class CIGuardianConfig:
                 logger.debug("Archivo de configuración vacío, usando defaults")
                 return cls.default()
 
+            # Validar integridad si existe sección _integrity (LIB-33)
+            integrity_data = data.get("_integrity", {})
+            if integrity_data and not integrity_data.get("allow_programmatic", True):
+                # Hay hash y allow_programmatic=False, validar integridad
+                expected_hash = integrity_data.get("hash")
+                if expected_hash:
+                    # Crear copia de data sin _integrity para calcular hash
+                    import hashlib
+
+                    data_sin_integrity = {k: v for k, v in data.items() if k != "_integrity"}
+                    contenido_sin_integrity = yaml.dump(
+                        data_sin_integrity, default_flow_style=False, allow_unicode=True
+                    )
+                    hash_actual = hashlib.sha256(
+                        contenido_sin_integrity.encode("utf-8")
+                    ).hexdigest()
+                    hash_actual_full = f"sha256:{hash_actual}"
+
+                    if hash_actual_full != expected_hash:
+                        raise ValueError(
+                            "❌ INTEGRIDAD COMPROMETIDA: El archivo .ci-guardian.yaml fue "
+                            "modificado de forma no autorizada.\n\n"
+                            "Si modificaste el archivo manualmente, regenera el hash con:\n"
+                            "  ci-guardian config --regenerate-hash\n\n"
+                            f"Hash esperado: {expected_hash}\n"
+                            f"Hash actual:   {hash_actual_full}"
+                        )
+
             # Parsear hooks
             hooks_data = data.get("hooks", {})
             hooks = {}
@@ -105,15 +135,20 @@ class CIGuardianConfig:
             validadores = {}
             for val_name, val_dict in validadores_data.items():
                 if isinstance(val_dict, dict):
-                    # Extraer enabled, timeout y el resto son options
+                    # Extraer enabled, timeout, protected y el resto son options
                     enabled = val_dict.get("enabled", True)
                     timeout = val_dict.get("timeout", 60)
+                    protected = val_dict.get("protected", False)
 
-                    # Options son todos los campos excepto enabled y timeout
-                    options = {k: v for k, v in val_dict.items() if k not in ("enabled", "timeout")}
+                    # Options son todos los campos excepto enabled, timeout y protected
+                    options = {
+                        k: v
+                        for k, v in val_dict.items()
+                        if k not in ("enabled", "timeout", "protected")
+                    }
 
                     validadores[val_name] = ValidadorConfig(
-                        enabled=enabled, timeout=timeout, options=options
+                        enabled=enabled, timeout=timeout, protected=protected, options=options
                     )
                 else:
                     logger.warning(f"Validador '{val_name}' tiene formato inválido, ignorando")
@@ -219,6 +254,7 @@ class CIGuardianConfig:
             val_dict: dict[str, Any] = {
                 "enabled": val_config.enabled,
                 "timeout": val_config.timeout,
+                "protected": val_config.protected,  # LIB-33: Incluir protected
             }
             # Añadir options
             val_dict.update(val_config.options)
@@ -249,3 +285,82 @@ def cargar_configuracion(repo_path: Path) -> CIGuardianConfig:
     """
     config_path = repo_path / ".ci-guardian.yaml"
     return CIGuardianConfig.from_yaml(config_path)
+
+
+# Funciones para sistema de integridad (LIB-33)
+
+
+def calcular_hash_config(contenido: str) -> str:
+    """
+    Calcula hash SHA256 del contenido de configuración.
+
+    Args:
+        contenido: Contenido del archivo YAML (sin sección _integrity)
+
+    Returns:
+        Hash en formato "sha256:<hex>" (71 caracteres)
+
+    Example:
+        >>> contenido = "version: 0.2.0\\nhooks:\\n  pre-commit:\\n    enabled: true"
+        >>> hash_val = calcular_hash_config(contenido)
+        >>> hash_val.startswith("sha256:")
+        True
+        >>> len(hash_val)
+        71
+    """
+    import hashlib
+
+    hash_hex = hashlib.sha256(contenido.encode("utf-8")).hexdigest()
+    return f"sha256:{hash_hex}"
+
+
+def regenerar_hash_config(config_path: Path) -> None:
+    """
+    Regenera el hash de integridad del archivo de configuración.
+
+    Lee el archivo, elimina la sección _integrity si existe, calcula el hash
+    del contenido restante, y añade la nueva sección _integrity con el hash.
+
+    Args:
+        config_path: Ruta al archivo .ci-guardian.yaml
+
+    Raises:
+        FileNotFoundError: Si el archivo no existe
+        yaml.YAMLError: Si el archivo no es YAML válido
+
+    Example:
+        >>> config_path = Path(".ci-guardian.yaml")
+        >>> regenerar_hash_config(config_path)
+        # Archivo ahora tiene _integrity con hash SHA256 válido
+    """
+    import hashlib
+
+    import yaml
+
+    if not config_path.exists():
+        raise FileNotFoundError(f"Archivo de configuración no encontrado: {config_path}")
+
+    # Leer y parsear YAML
+    with open(config_path, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+
+    if not data:
+        data = {}
+
+    # Eliminar sección _integrity si existe
+    data.pop("_integrity", None)
+
+    # Serializar a YAML (sin _integrity)
+    contenido_sin_integrity = yaml.dump(data, default_flow_style=False, allow_unicode=True)
+
+    # Calcular hash del contenido sin _integrity
+    hash_hex = hashlib.sha256(contenido_sin_integrity.encode("utf-8")).hexdigest()
+
+    # Añadir sección _integrity
+    data["_integrity"] = {"hash": f"sha256:{hash_hex}", "allow_programmatic": False}
+
+    # Escribir de vuelta
+    with open(config_path, "w", encoding="utf-8") as f:
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+
+    logger.info(f"Hash de integridad regenerado para {config_path}")

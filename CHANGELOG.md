@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 🔒 **Protected Configuration System (LIB-33)** - Prevent Claude Bypass
+  - New `protected: bool` field in `ValidadorConfig` dataclass
+  - Validators with `protected: true` cannot be programmatically disabled
+  - SHA256 hash integrity system in `.ci-guardian.yaml`
+  - New `_integrity` section with `hash` and `allow_programmatic` fields
+  - Automatic integrity validation in `CIGuardianConfig.from_yaml()`
+  - Raises `ValueError` with clear instructions if hash mismatch detected
+  - Functions: `calcular_hash_config()`, `regenerar_hash_config()`
+  - Legacy mode: Files without `_integrity` section work normally
+  - Bypass mode: `allow_programmatic: true` skips hash validation
+  - 12 comprehensive tests covering all scenarios (protected validators, integrity validation, hash regeneration)
+
+- 🔧 **CLI Command Extension: configure --regenerate-hash (LIB-33)**
+  - New flag: `ci-guardian configure --regenerate-hash`
+  - Regenerates SHA256 integrity hash after manual YAML edits
+  - Shows helpful message: "Ahora puedes hacer commit del archivo actualizado"
+  - Validates that `.ci-guardian.yaml` exists before proceeding
+  - Clear error messages if config file not found
+
+- 📝 **Configuration Template (LIB-33)** - Documentation & Examples
+  - New file: `.ci-guardian.yaml.template`
+  - Complete example with all validators (ruff, black, bandit, authorship, no-verify-token, tests)
+  - Shows which validators should be `protected: true` (bandit, authorship, no-verify-token)
+  - Explains `_integrity` section and how to regenerate hash
+  - Includes inline documentation and usage examples
 - 📦 **Venv Validator Module (LIB-32)** - Pre-Hook Environment Validation
   - New `src/ci_guardian/core/venv_validator.py` module
   - Function `esta_venv_activo() -> tuple[bool, str]` detects if venv is active
