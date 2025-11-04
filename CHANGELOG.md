@@ -184,11 +184,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - IDEs adicionales: Sublime Text, Emacs
   - Security patterns: .env variants, credentials, certificates
 
+#### Code Quality & Refactoring
+- 📦 **Centralized Python File Filtering (LIB-27)** - DRY principle applied to file filtering
+  - New `validators/file_utils.py` module with `filtrar_archivos_python_seguros()`
+  - Centralized filtering logic eliminates 62 lines of duplicated code
+  - Previously duplicated in `cli.py` (31 lines) and `code_quality.py` (31 lines)
+  - Inconsistency fixed: cli.py filtered by directories, code_quality.py didn't
+  - Configurable validation: path traversal, existence checks, directory exclusions
+  - DIRECTORIOS_EXCLUIDOS constant: venv, .venv, .git, __pycache__, build, dist, node_modules
+  - 29 comprehensive unit tests, 100% coverage
+  - Security features: path traversal prevention, safe path validation
+  - Benefits: improved maintainability, consistent behavior, single source of truth
+
+- 🧪 **Unit Tests for Git Hooks (LIB-28)** - Comprehensive hook testing
+  - New `tests/unit/test_commit_msg.py` - 16 tests, 94% coverage
+  - New `tests/unit/test_post_commit.py` - 14 tests, 100% coverage
+  - New `tests/unit/test_pre_commit.py` - 17 tests, 97% coverage
+  - Total: 47 new tests for hooks that only had integration tests
+  - Tests cover: happy paths, error handling, edge cases, timeouts
+  - Proper mocking pattern: mock at usage location, not definition location
+  - Key learning: `patch("ci_guardian.hooks.post_commit.validar_y_consumir_token")` ✅
+  - Coverage improvement: 76.51% → 90.70% (overall project coverage)
+  - All hooks now have ≥94% coverage: commit-msg (94%), post-commit (100%), pre-commit (97%)
+  - Benefits: easier debugging, better documentation via tests, higher confidence
+
+- ✨ **CLI Coverage Improvement (LIB-29)** - Exception handling and edge cases
+  - CLI coverage improved from 90% to 99% (only 1 line missing: Windows batch string)
+  - 8 new tests for generic exception handling in all CLI commands
+  - Tests for ValueError handling in check command (path traversal in ruff/black)
+  - Fixed colorama.init() test for Windows (invoke main with subcommand)
+  - Fixed test for "100%" message when all hooks installed
+  - Coverage breakdown: install (99%), uninstall (99%), status (99%), check (99%), configure (99%)
+  - Total project coverage: 92.33% (was 90.70%)
+  - Total tests: 503 passed, 10 skipped (was 496 passed)
+  - Benefits: robust error handling, production-ready CLI, comprehensive test suite
+
 ### Changed
 - **Development Workflow** - Ahora es obligatorio usar Pull Requests
   - No se puede hacer push directo a `main` o `dev`
   - Todos los commits pasan por pre-commit hooks automáticamente
   - Workflow: feature branch → push → PR → merge
+
+- **Test Coverage Baseline** - Updated from 75% to 92%
+  - Project-wide coverage improved from 76% to 92.33%
+  - All critical modules now at 90%+ coverage
+  - CLI module: 99% coverage (185/186 lines)
+  - Core modules: config (90%), installer (89%), venv_manager (89%)
+  - Validators: file_utils (100%), code_quality (98%), no_verify_blocker (94%)
+  - Hooks: post_commit (100%), pre_commit (97%), commit_msg (94%)
 
 ### Fixed
 - 🐛 **Token Generation Timing (LIB-3)** - Documentación del timing correcto
@@ -315,5 +358,6 @@ Cada release pasa por:
 - **MINOR**: Backwards-compatible new features
 - **PATCH**: Backwards-compatible bug fixes
 
-[Unreleased]: https://github.com/jarkillo/ci-guardian/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jarkillo/ci-guardian/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/jarkillo/ci-guardian/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jarkillo/ci-guardian/releases/tag/v0.1.0
