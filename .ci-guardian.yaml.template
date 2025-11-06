@@ -1,0 +1,107 @@
+# CI Guardian - Archivo de Configuración
+# https://github.com/jarkillo/ci-guardian
+
+version: 0.2.0
+
+# ===================================
+# HOOKS: Configuración de Git Hooks
+# ===================================
+hooks:
+  pre-commit:
+    enabled: true
+    validadores:
+      - ruff
+      - black
+      - bandit
+    skip_on_env: null
+
+  commit-msg:
+    enabled: true
+    validadores:
+      - authorship
+    skip_on_env: null
+
+  post-commit:
+    enabled: true
+    validadores:
+      - no-verify-token
+    skip_on_env: null
+
+  pre-push:
+    enabled: true
+    validadores:
+      - tests
+    skip_on_env: CI_GUARDIAN_SKIP_TESTS
+
+# =====================================================
+# VALIDADORES: Configuración Detallada de Validadores
+# =====================================================
+validadores:
+  # --- Code Quality ---
+  ruff:
+    enabled: true
+    timeout: 60
+    protected: false
+    # Options personalizadas
+    auto-fix: true
+    select: E,W,F,I,B,C4,UP,S,T20,RET,SIM
+    ignore: E501,S603,S607
+
+  black:
+    enabled: true
+    timeout: 60
+    protected: false
+    line-length: 100
+    target-version: py312
+
+  # --- Security ---
+  bandit:
+    enabled: true
+    timeout: 60
+    protected: true  # ⚠️ PROTEGIDO: No se puede deshabilitar programáticamente
+    severity: medium
+    exclude_dirs: tests,build,dist
+    skip_codes: B101  # Allow assert en tests
+
+  # --- Authorship ---
+  authorship:
+    enabled: true
+    timeout: 30
+    protected: true  # ⚠️ PROTEGIDO: Previene que Claude se añada como co-autor
+    block_claude_coauthor: true
+    allowed_coauthors: []
+
+  # --- Anti Bypass ---
+  no-verify-token:
+    enabled: true
+    timeout: 10
+    protected: true  # ⚠️ PROTEGIDO: Sistema de tokens anti --no-verify
+    token_dir: .git/ci-guardian
+
+  # --- Tests ---
+  tests:
+    enabled: true
+    timeout: 300
+    protected: false
+    pytest_args: -v --cov=src --cov-report=term-missing
+    min_coverage: 75
+
+# =====================================================================
+# INTEGRIDAD: Sistema de Protección contra Modificación Programática
+# =====================================================================
+# Esta sección es OPCIONAL y proporciona protección adicional.
+#
+# Si está presente y `allow_programmatic: false`, el sistema validará
+# que el archivo no haya sido modificado programáticamente.
+#
+# Para regenerar el hash después de editar manualmente este archivo:
+#   ci-guardian config --regenerate-hash
+#
+# _integrity:
+#   hash: "sha256:<calculado automáticamente>"
+#   allow_programmatic: false
+#
+# IMPORTANTE:
+# - Si no existe esta sección, el archivo funciona normalmente (legacy mode)
+# - Si `allow_programmatic: true`, se saltea la validación de hash
+# - Si `allow_programmatic: false`, se valida integridad con SHA256

@@ -221,9 +221,9 @@ class TestCLIInstall:
             hook_path = hooks_dir / hook_name
             hook_path.write_text("#!/bin/bash\n# CI-GUARDIAN-HOOK\necho 'old hook'")
 
-        # Act
+        # Act - Simular confirmación con 'y\n'
         with patch("ci_guardian.cli.Path.cwd", return_value=repo_git_mock):
-            resultado = cli_runner.invoke(install, ["--force"])
+            resultado = cli_runner.invoke(install, ["--force"], input="y\n")
 
         # Assert - Exit code y mensaje
         assert (

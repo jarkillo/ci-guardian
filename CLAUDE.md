@@ -358,10 +358,12 @@ git commit -m "refactor(core): extract hook validation logic to separate functio
 - **LIB-4**: Ruff and Black executor
 - **LIB-5**: Security audit (Bandit + Safety)
 - **LIB-6**: Authorship validator (anti Claude co-author)
+- **LIB-33**: Sistema de configuración protegida (.ci-guardian.yaml con hash SHA256)
 
 ### Issues Medium (Prioridad 3)
 
 - **LIB-7**: GitHub Actions executor local (act con fallback)
+- **LIB-32**: Verificación de venv activo pre-hook
 
 ### Orden de Implementación Recomendado
 
@@ -370,10 +372,12 @@ git commit -m "refactor(core): extract hook validation logic to separate functio
 3. **LIB-4** (Ruff/Black) → Validación básica de calidad
 4. **LIB-3** (Anti --no-verify) → Feature crítica de seguridad
 5. **LIB-8** (CLI) → Interfaz de usuario
-6. **LIB-6** (Authorship) → Validación de autoría
-7. **LIB-5** (Security) → Auditoría completa
-8. **LIB-7** (GH Actions) → Feature avanzada
-9. **LIB-9** (Tests) → Continuo durante todo el desarrollo
+6. **LIB-32** (Venv validator) → Previene errores confusos sin venv activo
+7. **LIB-33** (Config protegida) → Permite deshabilitar validadores NO críticos de forma segura
+8. **LIB-6** (Authorship) → Validación de autoría
+9. **LIB-5** (Security) → Auditoría completa
+10. **LIB-7** (GH Actions) → Feature avanzada
+11. **LIB-9** (Tests) → Continuo durante todo el desarrollo
 
 ---
 

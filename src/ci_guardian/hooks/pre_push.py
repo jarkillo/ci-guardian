@@ -15,6 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ci_guardian.core.venv_validator import esta_venv_activo
+
 
 def _ejecutar_pytest(repo_path: Path) -> tuple[bool, str]:
     """
@@ -91,6 +93,19 @@ def main() -> int:
     # Obtener directorio del repositorio
     repo_path = Path.cwd()
 
+    print("🔍 Ejecutando validaciones pre-push...")
+
+    # PASO 0: Verificar venv activo (LIB-32)
+    print("\n📦 Verificando entorno virtual...")
+    venv_ok, mensaje = esta_venv_activo()
+    if not venv_ok:
+        print(mensaje, file=sys.stderr)
+        print(
+            "\n💡 TIP: Puedes usar 'ci-guardian commit' para commits convenientes", file=sys.stderr
+        )
+        return 1
+    print(mensaje)
+
     # Cargar configuración desde módulo centralizado
     from ci_guardian.core.config import cargar_configuracion
 
@@ -101,8 +116,6 @@ def main() -> int:
     if not pre_push_config or not pre_push_config.enabled:
         print("ℹ️  Hook pre-push deshabilitado en configuración")
         return 0
-
-    print("🔍 Ejecutando validaciones pre-push...")
 
     # Obtener validadores configurados
     validadores = pre_push_config.validadores if pre_push_config.validadores else ["tests"]

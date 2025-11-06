@@ -248,11 +248,12 @@ def test_debe_permitir_reinstalacion_con_force(repo_git_real: Path) -> None:
     )
     assert resultado1.returncode == 0, "Primera instalación debe ser exitosa"
 
-    # Act: Instalar de nuevo CON --force
+    # Act: Instalar de nuevo CON --force (simular confirmación con 'y\n')
     resultado2 = subprocess.run(
         ["ci-guardian", "install", "--repo", str(repo_git_real), "--force"],
         capture_output=True,
         text=True,
+        input="y\n",  # Simular confirmación del usuario
     )
 
     # Assert: Debe ser exitosa

@@ -68,9 +68,9 @@ ci-guardian install
 
 ### ✨ Todas las Funcionalidades Implementadas
 
-- ✅ **5 comandos CLI**: install, uninstall, status, check, configure
+- ✅ **6 comandos CLI**: install, uninstall, status, check, configure, commit
 - ✅ **4 hooks Git**: pre-commit, commit-msg, post-commit, pre-push
-- ✅ **4 validadores**: Code quality, Security, Authorship, Anti --no-verify
+- ✅ **5 validadores**: Venv check, Code quality, Security, Authorship, Anti --no-verify
 - ✅ **1 runner**: GitHub Actions local (act con fallback)
 - ✅ **Soporte multiplataforma**: Linux, macOS, Windows
 - ✅ **Seguridad auditada**: 0 vulnerabilidades HIGH/CRITICAL
@@ -142,30 +142,54 @@ Crea un archivo `.ci-guardian.yaml` en la raíz de tu proyecto:
 
 ```yaml
 # .ci-guardian.yaml
-ruff:
-  enabled: true
-  fail_on_error: true
+version: 0.2.0
 
-black:
-  enabled: true
-  check_only: false  # false = autoformat, true = solo verifica
+hooks:
+  pre-commit:
+    enabled: true
+    validadores:
+      - ruff
+      - black
+      - bandit
 
-security:
-  bandit: true
-  safety: true
-  block_on_critical: true
+validadores:
+  ruff:
+    enabled: true
+    timeout: 60
+    protected: false  # Permite deshabilitar
+    auto-fix: true
 
-authorship:
-  block_claude_coauthor: true
-  allowed_coauthors:
-    - "TuCompañero <email@example.com>"
+  black:
+    enabled: true
+    timeout: 60
+    protected: false
+    line-length: 100
 
-github_actions:
-  enabled: true
-  use_act: true
-  workflows:
-    - ".github/workflows/test.yml"
+  bandit:
+    enabled: true
+    timeout: 60
+    protected: true  # 🔒 NO se puede deshabilitar programáticamente
+    severity: medium
+
+  authorship:
+    enabled: true
+    timeout: 30
+    protected: true  # 🔒 Previene que Claude se añada como co-autor
+    block_claude_coauthor: true
+
+# Sistema de Integridad (Opcional - LIB-33)
+# Si está presente, previene modificación programática del archivo
+# Para regenerar después de editar: ci-guardian configure --regenerate-hash
+_integrity:
+  hash: "sha256:<se calcula automáticamente>"
+  allow_programmatic: false
 ```
+
+**Validadores Protegidos** (🆕 v0.2.0):
+- `protected: true` → El validador NO se puede deshabilitar programáticamente
+- `protected: false` → Se puede deshabilitar según necesites
+- Sistema de integridad SHA256 detecta modificaciones no autorizadas
+- Regenerar hash después de editar: `ci-guardian configure --regenerate-hash`
 
 ### Comandos CLI
 
@@ -182,8 +206,14 @@ ci-guardian status
 # Ejecutar validación manual
 ci-guardian check
 
-# Actualizar configuración
+# Crear configuración
 ci-guardian configure
+
+# Regenerar hash de integridad después de editar manualmente (LIB-33)
+ci-guardian configure --regenerate-hash
+
+# Crear commit asegurando venv activo (LIB-32)
+ci-guardian commit -m "feat: add new feature"
 ```
 
 ## 🧪 Testing
@@ -206,10 +236,11 @@ pytest -m "not linux"    # En Windows
 
 ```
 src/ci_guardian/
-├── cli.py                      # CLI con Click (5 comandos)
+├── cli.py                      # CLI con Click (6 comandos)
 ├── core/
 │   ├── installer.py            # Instalación de hooks (LIB-1)
-│   └── venv_manager.py         # Detección/creación de venv (LIB-2)
+│   ├── venv_manager.py         # Detección/creación de venv (LIB-2)
+│   └── venv_validator.py       # Validación de venv activo (LIB-32)
 ├── validators/
 │   ├── code_quality.py         # Ruff & Black (LIB-4)
 │   ├── security.py             # Bandit & Safety (LIB-5)

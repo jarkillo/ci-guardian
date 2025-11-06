@@ -17,6 +17,7 @@ import colorama
 from ci_guardian import __version__
 from ci_guardian.core.installer import (
     desinstalar_hook,
+    es_hook_ci_guardian,
     es_repositorio_git,
     instalar_hook,
     obtener_hooks_instalados,
@@ -159,6 +160,42 @@ def main() -> None:
         colorama.init()
 
 
+def _hacer_backup_hooks(repo_path: Path, hooks_a_respaldar: list[str]) -> Path:
+    """
+    Crea backup de hooks existentes en .git/hooks.backup/.
+
+    Args:
+        repo_path: Ruta al repositorio Git
+        hooks_a_respaldar: Lista de nombres de hooks a respaldar
+
+    Returns:
+        Path al directorio de backup creado
+
+    Raises:
+        OSError: Si no se puede crear el backup
+    """
+    import shutil
+    from datetime import datetime
+
+    # Directorio de hooks
+    hooks_dir = repo_path / ".git" / "hooks"
+
+    # Crear directorio de backup con timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir = repo_path / ".git" / f"hooks.backup.{timestamp}"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copiar cada hook
+    for hook_name in hooks_a_respaldar:
+        # Considerar ambas extensiones (sin extensión y .bat)
+        for ext in ["", ".bat"]:
+            hook_path = hooks_dir / f"{hook_name}{ext}"
+            if hook_path.exists():
+                shutil.copy2(hook_path, backup_dir / f"{hook_name}{ext}")
+
+    return backup_dir
+
+
 @main.command()
 @click.option("--repo", default=".", help="Ruta al repositorio Git (default: directorio actual)")
 @click.option("--force", is_flag=True, help="Forzar reinstalación de hooks existentes")
@@ -172,15 +209,56 @@ def install(repo: str, force: bool) -> None:
         # Obtener y validar repo path
         repo_path = _obtener_repo_path(repo)
 
-        # Si force está activo, desinstalar hooks existentes primero
+        # Si force está activo, detectar hooks existentes y hacer backup
         if force:
-            import contextlib
+            hooks_dir = repo_path / ".git" / "hooks"
 
-            click.echo("Instalación forzada: eliminando hooks existentes...")
+            # Detectar hooks que existen (de cualquier herramienta)
+            hooks_existentes = []
             for hook_name in HOOKS_ESPERADOS:
-                # Hook no existe o no es de CI Guardian, ignorar
-                with contextlib.suppress(ValueError, FileNotFoundError):
-                    desinstalar_hook(repo_path, hook_name)
+                for ext in ["", ".bat"]:
+                    hook_path = hooks_dir / f"{hook_name}{ext}"
+                    if hook_path.exists():
+                        hooks_existentes.append(hook_name)
+                        break  # Solo contar una vez por hook
+
+            # Si hay hooks existentes, avisar y pedir confirmación
+            if hooks_existentes:
+                click.echo("⚠️  Hooks existentes detectados:")
+                for hook in hooks_existentes:
+                    hook_path = hooks_dir / hook
+                    # Verificar si es de CI Guardian
+                    es_ci_guardian = es_hook_ci_guardian(repo_path, hook)
+                    origen = "CI Guardian" if es_ci_guardian else "otra herramienta"
+                    click.echo(f"  • {hook} (instalado por {origen})")
+
+                click.echo("\n📋 Se realizará:")
+                click.echo("  1. Backup automático en .git/hooks.backup.TIMESTAMP/")
+                click.echo("  2. Eliminación de hooks existentes")
+                click.echo("  3. Instalación de hooks de CI Guardian")
+
+                if not click.confirm("\n¿Deseas continuar?"):
+                    click.echo("Operación cancelada.")
+                    sys.exit(0)
+
+                # Hacer backup
+                try:
+                    backup_dir = _hacer_backup_hooks(repo_path, hooks_existentes)
+                    click.echo(f"✓ Backup creado en: {backup_dir.relative_to(repo_path)}")
+                except OSError as e:
+                    click.echo(f"❌ Error al crear backup: {e}", err=True)
+                    sys.exit(1)
+
+                # Eliminar hooks existentes (ahora sin suppress)
+                for hook_name in hooks_existentes:
+                    for ext in ["", ".bat"]:
+                        hook_path = hooks_dir / f"{hook_name}{ext}"
+                        if hook_path.exists():
+                            hook_path.unlink()
+
+                click.echo(f"✓ {len(hooks_existentes)} hooks eliminados")
+            else:
+                click.echo("Instalación forzada: no hay hooks existentes para eliminar")
 
         # Instalar cada hook
         hooks_instalados = 0
@@ -383,11 +461,17 @@ def check(repo: str) -> None:
 
 @main.command()
 @click.option("--repo", default=".", help="Ruta al repositorio Git (default: directorio actual)")
-def configure(repo: str) -> None:
+@click.option(
+    "--regenerate-hash",
+    is_flag=True,
+    help="Regenera el hash de integridad del archivo .ci-guardian.yaml (LIB-33)",
+)
+def configure(repo: str, regenerate_hash: bool) -> None:
     """
-    Crea archivo de configuración .ci-guardian.yaml.
+    Crea archivo de configuración .ci-guardian.yaml o regenera su hash de integridad.
 
-    Genera configuración por defecto para el proyecto.
+    Genera configuración por defecto para el proyecto o actualiza el hash SHA256
+    de integridad después de editar manualmente el archivo.
     """
     try:
         # Obtener y validar repo path
@@ -396,6 +480,22 @@ def configure(repo: str) -> None:
         # Path del archivo de configuración
         config_path = repo_path / ".ci-guardian.yaml"
 
+        # Modo: Regenerar hash de integridad
+        if regenerate_hash:
+            if not config_path.exists():
+                click.echo(
+                    f"❌ Error: No existe archivo de configuración en {config_path}", err=True
+                )
+                sys.exit(1)
+
+            from ci_guardian.core.config import regenerar_hash_config
+
+            regenerar_hash_config(config_path)
+            click.echo(f"✓ Hash de integridad regenerado en {config_path}")
+            click.echo("\n💡 Ahora puedes hacer commit del archivo actualizado")
+            sys.exit(0)
+
+        # Modo normal: Crear configuración
         # Si existe, pedir confirmación
         if config_path.exists() and not click.confirm(
             "El archivo de configuración ya existe. ¿Sobrescribir?"
@@ -416,6 +516,114 @@ def configure(repo: str) -> None:
 
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error inesperado: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.option(
+    "-m",
+    "--message",
+    required=True,
+    help="Mensaje de commit",
+)
+@click.option(
+    "--repo",
+    default=".",
+    help="Ruta al repositorio Git (default: directorio actual)",
+)
+def commit(message: str, repo: str) -> None:
+    """
+    Crea un commit verificando que el venv esté activo.
+
+    Este comando valida que haya un venv activo ANTES de ejecutar git commit.
+    Si no hay venv activo, muestra instrucciones claras para activarlo y
+    cancela el commit para prevenir errores en los hooks.
+
+    IMPORTANTE: Este comando NO activa el venv automáticamente (técnicamente
+    imposible desde un subprocess). El usuario debe activar el venv manualmente.
+
+    Ejemplo:
+        source venv/bin/activate  # Activar primero
+        ci-guardian commit -m "feat: add new feature"
+
+    Implementado en LIB-32.
+    """
+    import subprocess
+
+    from ci_guardian.core.venv_validator import esta_venv_activo
+
+    try:
+        # Obtener y validar repo path
+        repo_path = _obtener_repo_path(repo)
+
+        # Verificar venv activo
+        venv_ok, mensaje = esta_venv_activo()
+
+        if not venv_ok:
+            click.echo("❌ ERROR: No hay entorno virtual activo", err=True)
+            click.echo(
+                "\nLos hooks de CI Guardian requieren un venv activo para ejecutar "
+                "Ruff, Black, Bandit y pytest.",
+                err=True,
+            )
+
+            # Intentar detectar venv para dar instrucciones específicas
+            from ci_guardian.core.venv_manager import detectar_venv
+
+            venv_path = detectar_venv(repo_path)
+            if venv_path:
+                click.echo(f"\n✓ Venv detectado en: {venv_path}", err=True)
+                click.echo("\n📋 Para activar el venv:", err=True)
+                if platform.system() == "Windows":
+                    click.echo(f"  {venv_path}\\Scripts\\activate", err=True)
+                else:
+                    click.echo(f"  source {venv_path}/bin/activate", err=True)
+            else:
+                click.echo("\n⚠️  No se detectó un venv en el proyecto.", err=True)
+                click.echo("\n📋 Crea y activa un venv:", err=True)
+                click.echo("  python -m venv venv", err=True)
+                if platform.system() == "Windows":
+                    click.echo("  venv\\Scripts\\activate", err=True)
+                else:
+                    click.echo("  source venv/bin/activate", err=True)
+
+            click.echo('\n💡 Luego ejecuta nuevamente: ci-guardian commit -m "..."', err=True)
+            sys.exit(1)
+
+        # Venv está activo, proceder con commit
+        click.echo(f'🔨 Ejecutando: git commit -m "{message}"')
+
+        resultado = subprocess.run(
+            ["git", "commit", "-m", message],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            shell=False,  # CRÍTICO: nunca usar shell=True
+        )
+
+        # Mostrar salida
+        if resultado.stdout:
+            click.echo(resultado.stdout)
+
+        if resultado.returncode == 0:
+            click.echo("\n✓ Commit creado exitosamente")
+            sys.exit(0)
+
+        # Error en commit
+        if resultado.stderr:
+            click.echo(resultado.stderr, err=True)
+
+        click.echo("\n❌ El commit falló", err=True)
+        sys.exit(resultado.returncode)
+
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except FileNotFoundError:
+        click.echo("❌ Error: Git no está instalado", err=True)
         sys.exit(1)
     except Exception as e:
         click.echo(f"Error inesperado: {e}", err=True)
