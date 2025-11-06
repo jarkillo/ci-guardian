@@ -17,6 +17,7 @@ import colorama
 from ci_guardian import __version__
 from ci_guardian.core.installer import (
     desinstalar_hook,
+    es_hook_ci_guardian,
     es_repositorio_git,
     instalar_hook,
     obtener_hooks_instalados,
@@ -159,6 +160,42 @@ def main() -> None:
         colorama.init()
 
 
+def _hacer_backup_hooks(repo_path: Path, hooks_a_respaldar: list[str]) -> Path:
+    """
+    Crea backup de hooks existentes en .git/hooks.backup/.
+
+    Args:
+        repo_path: Ruta al repositorio Git
+        hooks_a_respaldar: Lista de nombres de hooks a respaldar
+
+    Returns:
+        Path al directorio de backup creado
+
+    Raises:
+        OSError: Si no se puede crear el backup
+    """
+    import shutil
+    from datetime import datetime
+
+    # Directorio de hooks
+    hooks_dir = repo_path / ".git" / "hooks"
+
+    # Crear directorio de backup con timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir = repo_path / ".git" / f"hooks.backup.{timestamp}"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copiar cada hook
+    for hook_name in hooks_a_respaldar:
+        # Considerar ambas extensiones (sin extensión y .bat)
+        for ext in ["", ".bat"]:
+            hook_path = hooks_dir / f"{hook_name}{ext}"
+            if hook_path.exists():
+                shutil.copy2(hook_path, backup_dir / f"{hook_name}{ext}")
+
+    return backup_dir
+
+
 @main.command()
 @click.option("--repo", default=".", help="Ruta al repositorio Git (default: directorio actual)")
 @click.option("--force", is_flag=True, help="Forzar reinstalación de hooks existentes")
@@ -172,15 +209,56 @@ def install(repo: str, force: bool) -> None:
         # Obtener y validar repo path
         repo_path = _obtener_repo_path(repo)
 
-        # Si force está activo, desinstalar hooks existentes primero
+        # Si force está activo, detectar hooks existentes y hacer backup
         if force:
-            import contextlib
+            hooks_dir = repo_path / ".git" / "hooks"
 
-            click.echo("Instalación forzada: eliminando hooks existentes...")
+            # Detectar hooks que existen (de cualquier herramienta)
+            hooks_existentes = []
             for hook_name in HOOKS_ESPERADOS:
-                # Hook no existe o no es de CI Guardian, ignorar
-                with contextlib.suppress(ValueError, FileNotFoundError):
-                    desinstalar_hook(repo_path, hook_name)
+                for ext in ["", ".bat"]:
+                    hook_path = hooks_dir / f"{hook_name}{ext}"
+                    if hook_path.exists():
+                        hooks_existentes.append(hook_name)
+                        break  # Solo contar una vez por hook
+
+            # Si hay hooks existentes, avisar y pedir confirmación
+            if hooks_existentes:
+                click.echo("⚠️  Hooks existentes detectados:")
+                for hook in hooks_existentes:
+                    hook_path = hooks_dir / hook
+                    # Verificar si es de CI Guardian
+                    es_ci_guardian = es_hook_ci_guardian(repo_path, hook)
+                    origen = "CI Guardian" if es_ci_guardian else "otra herramienta"
+                    click.echo(f"  • {hook} (instalado por {origen})")
+
+                click.echo("\n📋 Se realizará:")
+                click.echo("  1. Backup automático en .git/hooks.backup.TIMESTAMP/")
+                click.echo("  2. Eliminación de hooks existentes")
+                click.echo("  3. Instalación de hooks de CI Guardian")
+
+                if not click.confirm("\n¿Deseas continuar?"):
+                    click.echo("Operación cancelada.")
+                    sys.exit(0)
+
+                # Hacer backup
+                try:
+                    backup_dir = _hacer_backup_hooks(repo_path, hooks_existentes)
+                    click.echo(f"✓ Backup creado en: {backup_dir.relative_to(repo_path)}")
+                except OSError as e:
+                    click.echo(f"❌ Error al crear backup: {e}", err=True)
+                    sys.exit(1)
+
+                # Eliminar hooks existentes (ahora sin suppress)
+                for hook_name in hooks_existentes:
+                    for ext in ["", ".bat"]:
+                        hook_path = hooks_dir / f"{hook_name}{ext}"
+                        if hook_path.exists():
+                            hook_path.unlink()
+
+                click.echo(f"✓ {len(hooks_existentes)} hooks eliminados")
+            else:
+                click.echo("Instalación forzada: no hay hooks existentes para eliminar")
 
         # Instalar cada hook
         hooks_instalados = 0

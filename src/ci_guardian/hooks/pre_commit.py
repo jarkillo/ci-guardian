@@ -159,33 +159,43 @@ def main() -> int:
         bandit_ok, bandit_results = ejecutar_bandit(repo_path, formato="json")
 
         if not bandit_ok:
-            # Verificar si el error es por Bandit no instalado
-            if "error" in bandit_results and "no está instalado" in bandit_results["error"]:
-                print("   ⚠️  Bandit no instalado, omitiendo auditoría de seguridad")
+            # Verificar si el error es por Bandit no instalado u otro error
+            if "error" in bandit_results:
+                error_msg = bandit_results.get("error", "")
+                if "no está instalado" in error_msg:
+                    print("   ⚠️  Bandit no instalado, omitiendo auditoría de seguridad")
+                else:
+                    print(f"   ⚠️  Error ejecutando Bandit: {error_msg}", file=sys.stderr)
+                    print("   ⚠️  Omitiendo auditoría de seguridad", file=sys.stderr)
             else:
-                # Vulnerabilidades HIGH encontradas
-                metrics = bandit_results.get("metrics", {}).get("_totals", {})
-                high_count = metrics.get("HIGH", 0)
-
-                print(f"❌ Bandit detectó {high_count} vulnerabilidad(es) HIGH", file=sys.stderr)
-                print("", file=sys.stderr)
-
-                # Mostrar detalles de vulnerabilidades
+                # No hay error, significa que HAY vulnerabilidades HIGH
+                # CRÍTICO: Contar desde results[], NO desde metrics._totals
+                # (metrics._totals puede estar desactualizado en algunas versiones de Bandit)
                 results = bandit_results.get("results", [])
-                for issue in results[:5]:  # Limitar a 5 para no saturar output
-                    if issue.get("issue_severity") == "HIGH":
-                        filename = issue.get("filename", "unknown")
-                        line_number = issue.get("line_number", 0)
-                        issue_text = issue.get("issue_text", "No description")
-                        print(f"   📍 {filename}:{line_number}", file=sys.stderr)
-                        print(f"      {issue_text}", file=sys.stderr)
+                high_count = sum(1 for r in results if r.get("issue_severity") == "HIGH")
 
-                print("", file=sys.stderr)
-                print(
-                    "💡 Tip: Revisa y corrige las vulnerabilidades antes de commitear",
-                    file=sys.stderr,
-                )
-                return 1
+                # Solo fallar si realmente hay vulnerabilidades HIGH
+                if high_count > 0:
+                    print(
+                        f"❌ Bandit detectó {high_count} vulnerabilidad(es) HIGH", file=sys.stderr
+                    )
+                    print("", file=sys.stderr)
+
+                    # Mostrar detalles de vulnerabilidades HIGH
+                    for issue in results[:5]:  # Limitar a 5 para no saturar output
+                        if issue.get("issue_severity") == "HIGH":
+                            filename = issue.get("filename", "unknown")
+                            line_number = issue.get("line_number", 0)
+                            issue_text = issue.get("issue_text", "No description")
+                            print(f"   📍 {filename}:{line_number}", file=sys.stderr)
+                            print(f"      {issue_text}", file=sys.stderr)
+
+                    print("", file=sys.stderr)
+                    print(
+                        "💡 Tip: Revisa y corrige las vulnerabilidades antes de commitear",
+                        file=sys.stderr,
+                    )
+                    return 1
 
         print("   ✅ Sin vulnerabilidades HIGH detectadas")
         print("")
