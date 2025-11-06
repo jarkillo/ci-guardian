@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-06
+
 ### Added
 - 🔒 **Protected Configuration System (LIB-33)** - Prevent Claude Bypass
   - New `protected: bool` field in `ValidadorConfig` dataclass
@@ -59,6 +61,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Executes git commit safely (shell=False, hardcoded command array)
   - Better UX for users who forget to activate their environment
   - Security: No command injection risk
+
+### Fixed
+- 🐛 **Critical: Pre-commit Hook Bandit False-Positives**
+  - Fixed bug where pre-commit hook failed with exit code 1 even when Bandit reported 0 HIGH vulnerabilities
+  - Root cause: Inconsistent vulnerability counting between `ejecutar_bandit()` (used `results[]`) and `pre_commit.py` (used `metrics._totals.HIGH` which can be stale)
+  - Solution: Use consistent counting method from `results[]` in both places
+  - Added explicit check: only fail if `high_count > 0`
+  - Improved error handling for Bandit timeouts and JSON parsing errors
+  - Impact: Prevents blocking legitimate commits with 0 HIGH vulnerabilities while maintaining security enforcement
+
+- 💾 **Automatic Backup in `--force` Flag**
+  - `ci-guardian install --force` now detects existing hooks from ANY tool (not just CI Guardian)
+  - Shows origin of each hook (CI Guardian vs other tools)
+  - Requests interactive confirmation before proceeding
+  - Creates automatic backup in `.git/hooks.backup.TIMESTAMP/` with preserved permissions
+  - Safely removes existing hooks and installs CI Guardian hooks
+  - Impact: Allows installing CI Guardian in projects with existing hooks while preserving originals
 
 ### Security
 - ✅ **LIB-32 Security Audit** - Bandit Clean

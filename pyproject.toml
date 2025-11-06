@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ci-guardian"
-version = "0.2.0"
+version = "0.3.0"
 description = "Git hooks automation for Claude Code projects - enforces code quality, security, and prevents hook bypass"
 readme = "README.md"
 authors = [
