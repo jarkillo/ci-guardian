@@ -63,13 +63,25 @@ def ejecutar_bandit(directorio: Path, formato: str = "json") -> tuple[bool, dict
         # Parsear JSON de forma segura
         if formato == "json":
             try:
+                # Si stdout está vacío, puede ser que Bandit falló completamente
+                if not resultado.stdout.strip():
+                    return (
+                        False,
+                        {
+                            "error": "Bandit no retornó output",
+                            "stderr": resultado.stderr[:200] if resultado.stderr else "Sin stderr",
+                        },
+                    )
+
                 data = json.loads(resultado.stdout)
             except json.JSONDecodeError as e:
                 return (
                     False,
                     {
                         "error": "Error parseando output de Bandit: JSON inválido",
-                        "detalle": str(e)[:100],  # Limitar longitud
+                        "detalle": str(e)[:100],
+                        "stdout_preview": resultado.stdout[:200],  # Primeros 200 chars para debug
+                        "stderr": resultado.stderr[:200] if resultado.stderr else "Sin stderr",
                     },
                 )
         else:

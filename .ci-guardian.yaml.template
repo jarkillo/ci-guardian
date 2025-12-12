@@ -13,25 +13,21 @@ hooks:
       - ruff
       - black
       - bandit
-    skip_on_env: null
 
   commit-msg:
     enabled: true
     validadores:
       - authorship
-    skip_on_env: null
 
   post-commit:
     enabled: true
     validadores:
       - no-verify-token
-    skip_on_env: null
 
   pre-push:
     enabled: true
     validadores:
       - tests
-    skip_on_env: CI_GUARDIAN_SKIP_TESTS
 
 # =====================================================
 # VALIDADORES: Configuración Detallada de Validadores
