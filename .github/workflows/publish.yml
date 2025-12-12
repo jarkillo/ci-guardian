@@ -148,15 +148,17 @@ jobs:
           if [ -f .git/hooks/pre-push ]; then
             echo "ℹ️  pre-push hook detected, testing push workflow"
 
+            # Instalar pytest para que el hook pre-push pueda ejecutar tests
+            pip install pytest pytest-cov
+
             # Crear remote de prueba
             git init --bare /tmp/smoke-remote.git
             git remote add origin /tmp/smoke-remote.git
 
             # Ejecutar push (trigger pre-push hook)
             # Usa HEAD para pushear la rama actual (main)
-            # Skip tests porque pytest no está instalado en venv limpio
-            CI_GUARDIAN_SKIP_TESTS=1 git push origin HEAD
-            echo "✅ Push workflow passed (pre-push hook executed with CI_GUARDIAN_SKIP_TESTS=1)"
+            git push origin HEAD
+            echo "✅ Push workflow passed (pre-push hook executed successfully)"
           else
             echo "ℹ️  No pre-push hook installed, skipping push test"
             echo "✅ Push workflow test skipped (hook not present)"

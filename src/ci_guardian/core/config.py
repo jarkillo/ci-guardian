@@ -41,12 +41,13 @@ class HookConfig:
     Attributes:
         enabled: Si el hook está habilitado
         validadores: Lista de validadores a ejecutar
-        skip_on_env: Variable de entorno para skip temporal
+
+    NOTE: skip_on_env fue REMOVIDO en v0.3.1 por razones de seguridad.
+          Para deshabilitar validadores, editar .ci-guardian.yaml con config protegida.
     """
 
     enabled: bool = True
     validadores: list[str] = field(default_factory=list)
-    skip_on_env: str | None = None
 
 
 @dataclass
@@ -125,7 +126,6 @@ class CIGuardianConfig:
                     hooks[hook_name] = HookConfig(
                         enabled=hook_dict.get("enabled", True),
                         validadores=hook_dict.get("validadores", []),
-                        skip_on_env=hook_dict.get("skip_on_env"),
                     )
                 else:
                     logger.warning(f"Hook '{hook_name}' tiene formato inválido, ignorando")
@@ -204,7 +204,6 @@ class CIGuardianConfig:
                 "pre-push": HookConfig(
                     enabled=True,
                     validadores=["tests"],
-                    skip_on_env="CI_GUARDIAN_SKIP_TESTS",
                 ),
             },
             validadores={
@@ -245,8 +244,6 @@ class CIGuardianConfig:
                 "enabled": hook_config.enabled,
                 "validadores": hook_config.validadores,
             }
-            if hook_config.skip_on_env:
-                hook_dict["skip_on_env"] = hook_config.skip_on_env
             data["hooks"][hook_name] = hook_dict
 
         # Serializar validadores
