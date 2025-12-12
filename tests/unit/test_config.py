@@ -303,17 +303,8 @@ class TestHookConfig:
         assert "black" in hook.validadores
         assert "bandit" in hook.validadores
 
-    def test_debe_soportar_skip_on_env_opcional(self) -> None:
-        """HookConfig debe soportar skip_on_env opcional."""
-        # Arrange & Act
-        from ci_guardian.core.config import HookConfig
-
-        hook_sin_skip = HookConfig()
-        hook_con_skip = HookConfig(skip_on_env="CI_GUARDIAN_SKIP_TESTS")
-
-        # Assert
-        assert hook_sin_skip.skip_on_env is None
-        assert hook_con_skip.skip_on_env == "CI_GUARDIAN_SKIP_TESTS"
+    # NOTE: test_debe_soportar_skip_on_env_opcional ELIMINADO en v0.3.1
+    # skip_on_env fue removido por razones de seguridad (contradecía objetivo anti-bypass).
 
 
 class TestValidadorConfig:

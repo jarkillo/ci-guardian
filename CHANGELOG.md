@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- 🔧 **Improved Bandit JSON Error Handling** - Better debugging when Bandit fails
+  - Detect when Bandit returns empty stdout
+  - Capture stderr for debugging when JSON parsing fails
+  - Show stdout preview (first 200 chars) in error messages
+  - Enhanced error messages in pre_commit hook with debug info (detalle, stderr, stdout_preview)
+  - Previously, Bandit errors were silently skipped with unclear messages
+
+### Security
+- 🚨 **BREAKING: Removed CI_GUARDIAN_SKIP_TESTS Bypass Vulnerability**
+  - **BREAKING CHANGE**: Removed `CI_GUARDIAN_SKIP_TESTS` environment variable
+  - This variable allowed trivial bypass: `CI_GUARDIAN_SKIP_TESTS=1 git push`
+  - Contradicted core purpose of CI Guardian (preventing validation bypass)
+  - Removed `skip_on_env` field from `HookConfig` dataclass
+  - Cleaned all `skip_on_env` entries from `.ci-guardian.yaml.template`
+  - Updated GitHub Actions smoke tests to install pytest instead of skip
+  - **Migration**: Use protected config system instead:
+    1. Edit `.ci-guardian.yaml` (set `enabled: false`)
+    2. Run `ci-guardian configure --regenerate-hash`
+    3. Commit changes (auditable in git)
+  - More secure: requires manual file edit, SHA256 hash prevents programmatic modification
+  - Reported by user - thank you!
+
+### Changed
+- 📝 **Updated Tests** - Reflect removal of CI_GUARDIAN_SKIP_TESTS
+  - Removed `test_debe_permitir_skip_con_variable_entorno` from test_pre_push.py
+  - Removed `test_debe_soportar_skip_on_env_opcional` from test_config.py
+  - Added `esta_venv_activo()` mocks to all pre_push tests
+  - All tests passing (10 passed, 1 skipped on Linux)
+
+## [0.3.0] - 2025-11-06
+
 ### Added
 - 🔒 **Protected Configuration System (LIB-33)** - Prevent Claude Bypass
   - New `protected: bool` field in `ValidadorConfig` dataclass
@@ -59,6 +91,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Executes git commit safely (shell=False, hardcoded command array)
   - Better UX for users who forget to activate their environment
   - Security: No command injection risk
+
+### Fixed
+- 🐛 **Critical: Pre-commit Hook Bandit False-Positives**
+  - Fixed bug where pre-commit hook failed with exit code 1 even when Bandit reported 0 HIGH vulnerabilities
+  - Root cause: Inconsistent vulnerability counting between `ejecutar_bandit()` (used `results[]`) and `pre_commit.py` (used `metrics._totals.HIGH` which can be stale)
+  - Solution: Use consistent counting method from `results[]` in both places
+  - Added explicit check: only fail if `high_count > 0`
+  - Improved error handling for Bandit timeouts and JSON parsing errors
+  - Impact: Prevents blocking legitimate commits with 0 HIGH vulnerabilities while maintaining security enforcement
+
+- 💾 **Automatic Backup in `--force` Flag**
+  - `ci-guardian install --force` now detects existing hooks from ANY tool (not just CI Guardian)
+  - Shows origin of each hook (CI Guardian vs other tools)
+  - Requests interactive confirmation before proceeding
+  - Creates automatic backup in `.git/hooks.backup.TIMESTAMP/` with preserved permissions
+  - Safely removes existing hooks and installs CI Guardian hooks
+  - Impact: Allows installing CI Guardian in projects with existing hooks while preserving originals
 
 ### Security
 - ✅ **LIB-32 Security Audit** - Bandit Clean

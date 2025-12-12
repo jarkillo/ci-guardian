@@ -23,9 +23,9 @@ class TestGeneracionTokens:
         token = generar_token_seguro()
 
         # Assert
-        assert len(token) >= 32, (
-            f"Token debe tener al menos 32 caracteres (256 bits), obtuvo {len(token)}"
-        )
+        assert (
+            len(token) >= 32
+        ), f"Token debe tener al menos 32 caracteres (256 bits), obtuvo {len(token)}"
         assert isinstance(token, str), "Token debe ser una cadena de texto"
 
     def test_debe_generar_tokens_unicos(self) -> None:
@@ -46,18 +46,17 @@ class TestGeneracionTokens:
     def test_debe_usar_secrets_module_no_random(self) -> None:
         """Debe usar el módulo secrets (criptográficamente seguro), no random."""
         # Arrange
-        from ci_guardian.validators import no_verify_blocker
+        import inspect
 
         # Act & Assert
         # Verificar que el código usa secrets.token_hex
-        import secrets
-        import inspect
+        from ci_guardian.validators import no_verify_blocker
 
         codigo_fuente = inspect.getsource(no_verify_blocker.generar_token_seguro)
         assert "secrets" in codigo_fuente, "Debe usar el módulo secrets"
-        assert "token_hex" in codigo_fuente or "token_urlsafe" in codigo_fuente, (
-            "Debe usar secrets.token_hex o secrets.token_urlsafe"
-        )
+        assert (
+            "token_hex" in codigo_fuente or "token_urlsafe" in codigo_fuente
+        ), "Debe usar secrets.token_hex o secrets.token_urlsafe"
         assert "random" not in codigo_fuente.lower(), "NO debe usar el módulo random"
 
     def test_debe_generar_token_hexadecimal_valido(self) -> None:
@@ -69,9 +68,9 @@ class TestGeneracionTokens:
 
         # Assert
         # Token hexadecimal solo contiene caracteres 0-9 y a-f
-        assert all(c in "0123456789abcdef" for c in token), (
-            "Token debe contener solo caracteres hexadecimales (0-9, a-f)"
-        )
+        assert all(
+            c in "0123456789abcdef" for c in token
+        ), "Token debe contener solo caracteres hexadecimales (0-9, a-f)"
 
     def test_debe_generar_token_sin_espacios_ni_saltos_linea(self) -> None:
         """Debe generar token sin espacios, saltos de línea u otros caracteres."""
@@ -159,9 +158,7 @@ class TestGuardadoTokens:
         with pytest.raises(ValueError, match="no es un repositorio Git válido"):
             guardar_token(dir_no_repo, token)
 
-    def test_debe_validar_path_para_prevenir_path_traversal(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_validar_path_para_prevenir_path_traversal(self, repo_mock: Path) -> None:
         """Debe prevenir path traversal en el nombre del archivo."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import guardar_token
@@ -174,9 +171,9 @@ class TestGuardadoTokens:
         # Assert
         token_path = repo_mock / ".git" / "CI_GUARDIAN_TOKEN"
         # Verificar que el path resuelto está dentro de .git/
-        assert token_path.resolve().parent == (repo_mock / ".git").resolve(), (
-            "Token debe estar en .git/, no fuera por path traversal"
-        )
+        assert (
+            token_path.resolve().parent == (repo_mock / ".git").resolve()
+        ), "Token debe estar en .git/, no fuera por path traversal"
 
     def test_debe_crear_archivo_con_permisos_seguros(self, repo_mock: Path) -> None:
         """Debe crear archivo con permisos 600 (solo dueño lee/escribe)."""
@@ -192,9 +189,7 @@ class TestGuardadoTokens:
         if platform.system() != "Windows":
             token_path = repo_mock / ".git" / "CI_GUARDIAN_TOKEN"
             permisos = oct(token_path.stat().st_mode)[-3:]
-            assert permisos == "600", (
-                f"Permisos deben ser 600 (solo dueño), obtuvo {permisos}"
-            )
+            assert permisos == "600", f"Permisos deben ser 600 (solo dueño), obtuvo {permisos}"
 
     def test_debe_rechazar_token_vacio(self, repo_mock: Path) -> None:
         """Debe rechazar guardar token vacío."""
@@ -246,9 +241,7 @@ class TestValidacionConsumoTokens:
         # Assert
         assert resultado is False, "Debe retornar False cuando token no existe"
 
-    def test_debe_eliminar_archivo_token_despues_validar(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_eliminar_archivo_token_despues_validar(self, repo_mock: Path) -> None:
         """Debe eliminar el archivo de token después de validarlo (consumir)."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import validar_y_consumir_token
@@ -276,9 +269,7 @@ class TestValidacionConsumoTokens:
         # Assert
         assert resultado is False, "Debe retornar False cuando token está vacío"
 
-    def test_debe_retornar_false_cuando_token_solo_espacios(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_retornar_false_cuando_token_solo_espacios(self, repo_mock: Path) -> None:
         """Debe retornar False cuando el token contiene solo espacios."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import validar_y_consumir_token
@@ -292,9 +283,7 @@ class TestValidacionConsumoTokens:
         # Assert
         assert resultado is False, "Debe retornar False cuando token solo tiene espacios"
 
-    def test_debe_eliminar_token_invalido_despues_validar(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_eliminar_token_invalido_despues_validar(self, repo_mock: Path) -> None:
         """Debe eliminar token inválido después de validar."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import validar_y_consumir_token
@@ -359,9 +348,7 @@ class TestRevocacionCommits:
         from ci_guardian.validators.no_verify_blocker import revertir_ultimo_commit
 
         mock_subprocess.return_value = MagicMock(
-            returncode=0,
-            stdout="HEAD is now at abc1234",
-            stderr=""
+            returncode=0, stdout="HEAD is now at abc1234", stderr=""
         )
 
         # Act
@@ -370,9 +357,12 @@ class TestRevocacionCommits:
         # Assert
         mock_subprocess.assert_called_once()
         args_llamada = mock_subprocess.call_args[0][0]
-        assert args_llamada == ["git", "reset", "--soft", "HEAD~1"], (
-            f"Debe llamar 'git reset --soft HEAD~1', llamó {args_llamada}"
-        )
+        assert args_llamada == [
+            "git",
+            "reset",
+            "--soft",
+            "HEAD~1",
+        ], f"Debe llamar 'git reset --soft HEAD~1', llamó {args_llamada}"
 
     @patch("ci_guardian.validators.no_verify_blocker.subprocess.run")
     def test_debe_ejecutar_git_en_directorio_repo(
@@ -389,9 +379,9 @@ class TestRevocacionCommits:
 
         # Assert
         kwargs_llamada = mock_subprocess.call_args[1]
-        assert kwargs_llamada.get("cwd") == repo_mock, (
-            f"Debe ejecutar git en {repo_mock}, ejecutó en {kwargs_llamada.get('cwd')}"
-        )
+        assert (
+            kwargs_llamada.get("cwd") == repo_mock
+        ), f"Debe ejecutar git en {repo_mock}, ejecutó en {kwargs_llamada.get('cwd')}"
 
     @patch("ci_guardian.validators.no_verify_blocker.subprocess.run")
     def test_debe_retornar_true_cuando_reversion_exitosa(
@@ -402,9 +392,7 @@ class TestRevocacionCommits:
         from ci_guardian.validators.no_verify_blocker import revertir_ultimo_commit
 
         mock_subprocess.return_value = MagicMock(
-            returncode=0,
-            stdout="HEAD is now at abc1234",
-            stderr=""
+            returncode=0, stdout="HEAD is now at abc1234", stderr=""
         )
 
         # Act
@@ -412,9 +400,9 @@ class TestRevocacionCommits:
 
         # Assert
         assert exito is True, "Debe retornar True cuando reversión exitosa"
-        assert "revertido" in mensaje.lower() or "exitosa" in mensaje.lower(), (
-            f"Mensaje debe indicar éxito, obtuvo: {mensaje}"
-        )
+        assert (
+            "revertido" in mensaje.lower() or "exitosa" in mensaje.lower()
+        ), f"Mensaje debe indicar éxito, obtuvo: {mensaje}"
 
     @patch("ci_guardian.validators.no_verify_blocker.subprocess.run")
     def test_debe_retornar_false_cuando_reversion_falla(
@@ -425,9 +413,7 @@ class TestRevocacionCommits:
         from ci_guardian.validators.no_verify_blocker import revertir_ultimo_commit
 
         mock_subprocess.return_value = MagicMock(
-            returncode=1,
-            stdout="",
-            stderr="fatal: ambiguous argument 'HEAD~1'"
+            returncode=1, stdout="", stderr="fatal: ambiguous argument 'HEAD~1'"
         )
 
         # Act
@@ -435,9 +421,9 @@ class TestRevocacionCommits:
 
         # Assert
         assert exito is False, "Debe retornar False cuando reversión falla"
-        assert "error" in mensaje.lower() or "fatal" in mensaje.lower(), (
-            f"Mensaje debe indicar error, obtuvo: {mensaje}"
-        )
+        assert (
+            "error" in mensaje.lower() or "fatal" in mensaje.lower()
+        ), f"Mensaje debe indicar error, obtuvo: {mensaje}"
 
     @patch("ci_guardian.validators.no_verify_blocker.subprocess.run")
     def test_debe_manejar_caso_sin_commits_para_revertir(
@@ -448,9 +434,7 @@ class TestRevocacionCommits:
         from ci_guardian.validators.no_verify_blocker import revertir_ultimo_commit
 
         mock_subprocess.return_value = MagicMock(
-            returncode=128,
-            stdout="",
-            stderr="fatal: ambiguous argument 'HEAD~1': unknown revision"
+            returncode=128, stdout="", stderr="fatal: ambiguous argument 'HEAD~1': unknown revision"
         )
 
         # Act
@@ -458,9 +442,9 @@ class TestRevocacionCommits:
 
         # Assert
         assert exito is False, "Debe retornar False cuando no hay commits"
-        assert "no hay commits" in mensaje.lower() or "sin commits" in mensaje.lower(), (
-            f"Mensaje debe indicar falta de commits, obtuvo: {mensaje}"
-        )
+        assert (
+            "no hay commits" in mensaje.lower() or "sin commits" in mensaje.lower()
+        ), f"Mensaje debe indicar falta de commits, obtuvo: {mensaje}"
 
     @patch("ci_guardian.validators.no_verify_blocker.subprocess.run")
     def test_debe_usar_shell_false_para_seguridad(
@@ -477,9 +461,9 @@ class TestRevocacionCommits:
 
         # Assert
         kwargs_llamada = mock_subprocess.call_args[1]
-        assert kwargs_llamada.get("shell") is False or "shell" not in kwargs_llamada, (
-            "Debe usar shell=False o no especificarlo (default False)"
-        )
+        assert (
+            kwargs_llamada.get("shell") is False or "shell" not in kwargs_llamada
+        ), "Debe usar shell=False o no especificarlo (default False)"
 
     @patch("ci_guardian.validators.no_verify_blocker.subprocess.run")
     def test_debe_rechazar_repo_sin_directorio_git(
@@ -518,8 +502,8 @@ class TestWorkflowCompleto:
         """Debe validar commit normal (con pre-commit) exitosamente."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import (
-            guardar_token,
             generar_token_seguro,
+            guardar_token,
             verificar_commit_sin_hooks,
         )
 
@@ -565,8 +549,8 @@ class TestWorkflowCompleto:
         """Debe consumir (eliminar) token después de commit válido."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import (
-            guardar_token,
             generar_token_seguro,
+            guardar_token,
             verificar_commit_sin_hooks,
         )
 
@@ -631,23 +615,19 @@ class TestEdgeCasesSeguridad:
         (repo_path / ".git").mkdir()
         return repo_path
 
-    def test_debe_rechazar_token_con_command_injection_attempt(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_rechazar_token_con_command_injection_attempt(self, repo_mock: Path) -> None:
         """Debe rechazar tokens con intentos de command injection."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import guardar_token
 
-        token_malicioso = "abc123; rm -rf /; echo"
+        token_malicioso = "abc123; rm -rf /; echo"  # noqa: S105 (test value, not real password)
 
         # Act & Assert
         # Debe rechazar o sanitizar el token
         with pytest.raises(ValueError, match="Token contiene caracteres no permitidos"):
             guardar_token(repo_mock, token_malicioso)
 
-    def test_debe_rechazar_token_con_caracteres_especiales(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_rechazar_token_con_caracteres_especiales(self, repo_mock: Path) -> None:
         """Debe rechazar tokens con caracteres especiales peligrosos."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import guardar_token
@@ -661,14 +641,10 @@ class TestEdgeCasesSeguridad:
 
         # Act & Assert
         for token in tokens_peligrosos:
-            with pytest.raises(
-                ValueError, match="Token contiene caracteres no permitidos"
-            ):
+            with pytest.raises(ValueError, match="Token contiene caracteres no permitidos"):
                 guardar_token(repo_mock, token)
 
-    def test_debe_validar_solo_caracteres_hexadecimales_en_token(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_validar_solo_caracteres_hexadecimales_en_token(self, repo_mock: Path) -> None:
         """Debe validar que token solo contenga caracteres hexadecimales."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import guardar_token
@@ -686,9 +662,7 @@ class TestEdgeCasesSeguridad:
         with pytest.raises(ValueError, match="Token contiene caracteres no permitidos"):
             guardar_token(repo_mock, token_invalido)
 
-    def test_debe_prevenir_path_traversal_en_nombre_archivo(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_prevenir_path_traversal_en_nombre_archivo(self, repo_mock: Path) -> None:
         """Debe prevenir path traversal en el path del archivo de token."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import guardar_token
@@ -703,9 +677,9 @@ class TestEdgeCasesSeguridad:
         resolved_path = token_path.resolve()
         expected_parent = (repo_mock / ".git").resolve()
 
-        assert resolved_path.parent == expected_parent, (
-            f"Token debe estar en {expected_parent}, está en {resolved_path.parent}"
-        )
+        assert (
+            resolved_path.parent == expected_parent
+        ), f"Token debe estar en {expected_parent}, está en {resolved_path.parent}"
 
     @patch("ci_guardian.validators.no_verify_blocker.subprocess.run")
     def test_debe_resistir_timing_attacks_en_validacion(
@@ -713,20 +687,21 @@ class TestEdgeCasesSeguridad:
     ) -> None:
         """Debe usar comparación de tiempo constante para prevenir timing attacks."""
         # Arrange
-        from ci_guardian.validators.no_verify_blocker import validar_y_consumir_token
         import time
+
+        from ci_guardian.validators.no_verify_blocker import validar_y_consumir_token
 
         token_path = repo_mock / ".git" / "CI_GUARDIAN_TOKEN"
 
         # Test con token válido
         token_path.write_text("a" * 64, encoding="utf-8")
         inicio = time.perf_counter()
-        resultado_valido = validar_y_consumir_token(repo_mock)
+        _ = validar_y_consumir_token(repo_mock)  # Resultado no importa, medimos tiempo
         tiempo_valido = time.perf_counter() - inicio
 
         # Test sin token
         inicio = time.perf_counter()
-        resultado_invalido = validar_y_consumir_token(repo_mock)
+        _ = validar_y_consumir_token(repo_mock)  # Resultado no importa, medimos tiempo
         tiempo_invalido = time.perf_counter() - inicio
 
         # Assert
@@ -744,8 +719,8 @@ class TestEdgeCasesSeguridad:
         """Debe manejar correctamente race conditions con múltiples commits rápidos."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import (
-            guardar_token,
             generar_token_seguro,
+            guardar_token,
             verificar_commit_sin_hooks,
         )
 
@@ -784,12 +759,9 @@ class TestEdgeCasesSeguridad:
         assert not token_path.exists(), "Archivo corrupto debe ser eliminado"
 
     @pytest.mark.skipif(
-        platform.system() == "Windows",
-        reason="Test específico de Linux (permisos de archivos)"
+        platform.system() == "Windows", reason="Test específico de Linux (permisos de archivos)"
     )
-    def test_debe_detectar_archivo_token_con_permisos_inseguros(
-        self, repo_mock: Path
-    ) -> None:
+    def test_debe_detectar_archivo_token_con_permisos_inseguros(self, repo_mock: Path) -> None:
         """Debe detectar y rechazar archivo de token con permisos inseguros."""
         # Arrange
         from ci_guardian.validators.no_verify_blocker import validar_y_consumir_token
@@ -799,10 +771,7 @@ class TestEdgeCasesSeguridad:
         token_path.chmod(0o777)  # Permisos inseguros (todos pueden leer/escribir)
 
         # Act & Assert
-        with pytest.raises(
-            PermissionError,
-            match="permisos inseguros|demasiado permisivo"
-        ):
+        with pytest.raises(PermissionError, match="permisos inseguros|demasiado permisivo"):
             validar_y_consumir_token(repo_mock)
 
     def test_debe_manejar_token_extremadamente_largo(self, repo_mock: Path) -> None:
@@ -810,7 +779,6 @@ class TestEdgeCasesSeguridad:
         # Arrange
         from ci_guardian.validators.no_verify_blocker import (
             guardar_token,
-            validar_y_consumir_token,
         )
 
         # Token de 10KB (mucho más largo que los 64 chars esperados)
