@@ -151,6 +151,16 @@ jobs:
             # Instalar pytest para que el hook pre-push pueda ejecutar tests
             pip install pytest pytest-cov
 
+            # Crear test dummy para que pytest no falle con "no tests collected"
+            mkdir -p tests
+            cat > tests/test_smoke.py << 'EOF'
+          def test_smoke():
+              """Dummy test to verify pytest works in smoke test."""
+              assert True
+          EOF
+            git add tests/test_smoke.py
+            git commit -m "test: add dummy test for smoke test"
+
             # Crear remote de prueba
             git init --bare /tmp/smoke-remote.git
             git remote add origin /tmp/smoke-remote.git
