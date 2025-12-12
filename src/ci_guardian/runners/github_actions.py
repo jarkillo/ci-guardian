@@ -189,7 +189,7 @@ def ejecutar_workflow_fallback(repo_path: Path) -> tuple[bool, str]:
     # Ejecutar ruff
     try:
         res = subprocess.run(
-            ["ruff", "check", "."],
+            ["ruff", "check", "src/", "tests/"],
             cwd=repo_path,
             capture_output=True,
             text=True,
@@ -207,7 +207,7 @@ def ejecutar_workflow_fallback(repo_path: Path) -> tuple[bool, str]:
     # Ejecutar black
     try:
         res = subprocess.run(
-            ["black", "--check", "."],
+            ["black", "--check", "src/", "tests/"],
             cwd=repo_path,
             capture_output=True,
             text=True,

@@ -10,7 +10,6 @@ causando el bug crítico ModuleNotFoundError. Implementación en v0.2.0.
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -84,12 +83,12 @@ def main() -> int:
         Según la Regla de Tres: "No abstraer hasta tener 3+ casos similares".
         Ver CLAUDE.md sección "Decisiones Arquitecturales Postponed" para
         triggers que justificarían crear hook_runner.py en el futuro.
-    """
-    # Detectar si se debe skip (variable de entorno)
-    if os.environ.get("CI_GUARDIAN_SKIP_TESTS") == "1":
-        print("⚠️  CI_GUARDIAN_SKIP_TESTS=1 detectado, saltando validaciones")
-        return 0
 
+    SECURITY NOTE: La variable CI_GUARDIAN_SKIP_TESTS fue REMOVIDA en v0.3.1
+        porque contradecía el objetivo de prevenir bypass de validaciones.
+        Para deshabilitar validadores temporalmente, usar .ci-guardian.yaml
+        con el sistema de config protegida (hash SHA256).
+    """
     # Obtener directorio del repositorio
     repo_path = Path.cwd()
 
@@ -142,7 +141,8 @@ def main() -> int:
         print("\n✅ Todas las validaciones pasaron. Push permitido.")
         return 0
     print("\n❌ Algunas validaciones fallaron. Push bloqueado.")
-    print("   Tip: Fix los errores o usa CI_GUARDIAN_SKIP_TESTS=1 para skip temporal")
+    print("   Tip: Fix los errores antes de hacer push")
+    print("   Para deshabilitar validadores: editar .ci-guardian.yaml")
     return 1
 
 

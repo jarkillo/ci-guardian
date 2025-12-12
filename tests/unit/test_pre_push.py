@@ -30,17 +30,21 @@ class TestPrePushHookExecution:
         mock_result.stderr = ""
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
-            # Act
-            from ci_guardian.hooks.pre_push import main
+            # Mock venv validator (pre_push lo llama ahora)
+            with patch(
+                "ci_guardian.hooks.pre_push.esta_venv_activo", return_value=(True, "✓ Venv activo")
+            ):
+                # Act
+                from ci_guardian.hooks.pre_push import main
 
-            resultado = main()
+                resultado = main()
 
-            # Assert
-            assert resultado == 0, "Debe retornar 0 cuando tests pasan"
-            mock_run.assert_called_once()
-            # Verificar que se llamó a pytest
-            args = mock_run.call_args[0][0]
-            assert "pytest" in args
+                # Assert
+                assert resultado == 0, "Debe retornar 0 cuando tests pasan"
+                mock_run.assert_called_once()
+                # Verificar que se llamó a pytest
+                args = mock_run.call_args[0][0]
+                assert "pytest" in args
 
     def test_debe_fallar_cuando_pytest_falla(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -56,31 +60,21 @@ class TestPrePushHookExecution:
         mock_result.stderr = ""
 
         with patch("subprocess.run", return_value=mock_result):
-            # Act
-            from ci_guardian.hooks.pre_push import main
+            # Mock venv validator
+            with patch(
+                "ci_guardian.hooks.pre_push.esta_venv_activo", return_value=(True, "✓ Venv activo")
+            ):
+                # Act
+                from ci_guardian.hooks.pre_push import main
 
-            resultado = main()
+                resultado = main()
 
-            # Assert
-            assert resultado == 1, "Debe retornar 1 cuando tests fallan"
+                # Assert
+                assert resultado == 1, "Debe retornar 1 cuando tests fallan"
 
-    def test_debe_permitir_skip_con_variable_entorno(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Debe permitir skip de validaciones con CI_GUARDIAN_SKIP_TESTS=1."""
-        # Arrange
-        monkeypatch.chdir(tmp_path)
-        monkeypatch.setenv("CI_GUARDIAN_SKIP_TESTS", "1")
-
-        with patch("subprocess.run") as mock_run:
-            # Act
-            from ci_guardian.hooks.pre_push import main
-
-            resultado = main()
-
-            # Assert
-            assert resultado == 0, "Debe retornar 0 cuando se usa skip"
-            mock_run.assert_not_called()  # No debe ejecutar nada
+    # NOTE: test_debe_permitir_skip_con_variable_entorno ELIMINADO en v0.3.1
+    # CI_GUARDIAN_SKIP_TESTS fue removido porque contradecía el objetivo de seguridad.
+    # Para deshabilitar validadores temporalmente, usar .ci-guardian.yaml con config protegida.
 
     def test_debe_ejecutar_github_actions_localmente_si_configurado(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -114,13 +108,18 @@ hooks:
                 "ci_guardian.hooks.pre_push._ejecutar_github_actions",
                 return_value=(True, "✓ GitHub Actions pasaron"),
             ):
-                # Act
-                from ci_guardian.hooks.pre_push import main
+                # Mock venv validator
+                with patch(
+                    "ci_guardian.hooks.pre_push.esta_venv_activo",
+                    return_value=(True, "✓ Venv activo"),
+                ):
+                    # Act
+                    from ci_guardian.hooks.pre_push import main
 
-                resultado = main()
+                    resultado = main()
 
-                # Assert
-                assert resultado == 0, "Debe retornar 0 cuando todo pasa"
+                    # Assert
+                    assert resultado == 0, "Debe retornar 0 cuando todo pasa"
 
 
 class TestPrePushConfiguration:
@@ -189,17 +188,21 @@ class TestPrePushSecurity:
         mock_result.stderr = ""
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
-            # Act
-            from ci_guardian.hooks.pre_push import main
+            # Mock venv validator
+            with patch(
+                "ci_guardian.hooks.pre_push.esta_venv_activo", return_value=(True, "✓ Venv activo")
+            ):
+                # Act
+                from ci_guardian.hooks.pre_push import main
 
-            main()
+                main()
 
-            # Assert - verificar que NO se usa shell=True
-            for call in mock_run.call_args_list:
-                kwargs = call[1]
-                assert (
-                    kwargs.get("shell", False) is False
-                ), "NUNCA debe usar shell=True (previene command injection)"
+                # Assert - verificar que NO se usa shell=True
+                for call in mock_run.call_args_list:
+                    kwargs = call[1]
+                    assert (
+                        kwargs.get("shell", False) is False
+                    ), "NUNCA debe usar shell=True (previene command injection)"
 
     def test_debe_manejar_timeout_en_ejecucion(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -209,13 +212,17 @@ class TestPrePushSecurity:
         monkeypatch.chdir(tmp_path)
 
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("pytest", 60)):
-            # Act
-            from ci_guardian.hooks.pre_push import main
+            # Mock venv validator
+            with patch(
+                "ci_guardian.hooks.pre_push.esta_venv_activo", return_value=(True, "✓ Venv activo")
+            ):
+                # Act
+                from ci_guardian.hooks.pre_push import main
 
-            resultado = main()
+                resultado = main()
 
-            # Assert
-            assert resultado == 1, "Debe fallar si hay timeout"
+                # Assert
+                assert resultado == 1, "Debe fallar si hay timeout"
 
 
 class TestPrePushCrossPlatform:
@@ -238,13 +245,17 @@ class TestPrePushCrossPlatform:
         mock_result.stderr = ""
 
         with patch("subprocess.run", return_value=mock_result):
-            # Act
-            from ci_guardian.hooks.pre_push import main
+            # Mock venv validator
+            with patch(
+                "ci_guardian.hooks.pre_push.esta_venv_activo", return_value=(True, "✓ Venv activo")
+            ):
+                # Act
+                from ci_guardian.hooks.pre_push import main
 
-            resultado = main()
+                resultado = main()
 
-            # Assert
-            assert resultado == 0, "Debe funcionar en Windows"
+                # Assert
+                assert resultado == 0, "Debe funcionar en Windows"
 
     @pytest.mark.skipif(
         __import__("platform").system() != "Linux",
@@ -261,13 +272,17 @@ class TestPrePushCrossPlatform:
         mock_result.stderr = ""
 
         with patch("subprocess.run", return_value=mock_result):
-            # Act
-            from ci_guardian.hooks.pre_push import main
+            # Mock venv validator
+            with patch(
+                "ci_guardian.hooks.pre_push.esta_venv_activo", return_value=(True, "✓ Venv activo")
+            ):
+                # Act
+                from ci_guardian.hooks.pre_push import main
 
-            resultado = main()
+                resultado = main()
 
-            # Assert
-            assert resultado == 0, "Debe funcionar en Linux"
+                # Assert
+                assert resultado == 0, "Debe funcionar en Linux"
 
 
 class TestPrePushErrorHandling:
@@ -281,13 +296,17 @@ class TestPrePushErrorHandling:
         monkeypatch.chdir(tmp_path)
 
         with patch("subprocess.run", side_effect=FileNotFoundError("pytest not found")):
-            # Act
-            from ci_guardian.hooks.pre_push import main
+            # Mock venv validator
+            with patch(
+                "ci_guardian.hooks.pre_push.esta_venv_activo", return_value=(True, "✓ Venv activo")
+            ):
+                # Act
+                from ci_guardian.hooks.pre_push import main
 
-            resultado = main()
+                resultado = main()
 
-            # Assert
-            assert resultado == 1, "Debe fallar si pytest no está instalado"
+                # Assert
+                assert resultado == 1, "Debe fallar si pytest no está instalado"
 
     def test_debe_proporcionar_mensaje_claro_al_fallar(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
@@ -302,14 +321,18 @@ class TestPrePushErrorHandling:
         mock_result.stderr = ""
 
         with patch("subprocess.run", return_value=mock_result):
-            # Act
-            from ci_guardian.hooks.pre_push import main
+            # Mock venv validator
+            with patch(
+                "ci_guardian.hooks.pre_push.esta_venv_activo", return_value=(True, "✓ Venv activo")
+            ):
+                # Act
+                from ci_guardian.hooks.pre_push import main
 
-            resultado = main()
+                resultado = main()
 
-            # Assert
-            captured = capsys.readouterr()
-            assert resultado == 1, "Debe fallar"
-            assert (
-                "tests" in captured.out.lower() or "failed" in captured.out.lower()
-            ), "Debe mostrar mensaje claro sobre tests fallidos"
+                # Assert
+                captured = capsys.readouterr()
+                assert resultado == 1, "Debe fallar"
+                assert (
+                    "tests" in captured.out.lower() or "failed" in captured.out.lower()
+                ), "Debe mostrar mensaje claro sobre tests fallidos"

@@ -166,6 +166,15 @@ def main() -> int:
                     print("   ⚠️  Bandit no instalado, omitiendo auditoría de seguridad")
                 else:
                     print(f"   ⚠️  Error ejecutando Bandit: {error_msg}", file=sys.stderr)
+
+                    # Mostrar información adicional de debug si está disponible
+                    if "detalle" in bandit_results:
+                        print(f"   📋 Detalle: {bandit_results['detalle']}", file=sys.stderr)
+                    if "stderr" in bandit_results:
+                        print(f"   📋 Stderr: {bandit_results['stderr']}", file=sys.stderr)
+                    if "stdout_preview" in bandit_results:
+                        print(f"   📋 Stdout: {bandit_results['stdout_preview']}", file=sys.stderr)
+
                     print("   ⚠️  Omitiendo auditoría de seguridad", file=sys.stderr)
             else:
                 # No hay error, significa que HAY vulnerabilidades HIGH
