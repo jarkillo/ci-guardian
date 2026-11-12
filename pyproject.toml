@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ci-guardian"
-version = "0.3.1"
-description = "Git hooks automation for Claude Code projects - enforces code quality, security, and prevents hook bypass"
+version = "0.3.2"
+description = "Git hooks automation for Claude Code projects - enforces code quality, security, and prevents hook bypass (deprecated, replaced by Lichen)"
 readme = "README.md"
 authors = [
     {name = "Jarko", email = "jarko@example.com"}
@@ -24,7 +24,7 @@ keywords = [
     "ci-cd",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 7 - Inactive",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
