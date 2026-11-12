@@ -1,3 +1,8 @@
+> [!WARNING]
+> **This project is no longer maintained: it has been replaced by [Lichen](https://github.com/Neuralflows/axon-terminal).**
+> Este proyecto ya no se mantiene: lo sustituye [Lichen](https://github.com/Neuralflows/axon-terminal).
+> `0.3.2` is the final release of `ci-guardian` on PyPI; the repository is archived.
+
 # CI Guardian 🛡️
 
 > Git hooks automation for Claude Code projects - Enforces code quality, security, and prevents hook bypass

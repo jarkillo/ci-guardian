@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-12
+
+### Deprecated
+
+- Project no longer maintained: replaced by [Lichen](https://github.com/Neuralflows/axon-terminal). This is the final release; no code changes.
+
 ## [0.3.1] - 2025-12-12
 
 ### Fixed
